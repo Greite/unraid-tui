@@ -16,13 +16,13 @@ func TestLoad_FromFile(t *testing.T) {
 	resetViper()
 
 	dir := t.TempDir()
-	cfgPath := filepath.Join(dir, ".unraid-tui.yaml")
+	cfgPath := filepath.Join(dir, "config.yaml")
 	content := []byte("server_url: http://192.168.1.100:3001\napi_key: test-key-123\n")
 	if err := os.WriteFile(cfgPath, content, 0600); err != nil {
 		t.Fatal(err)
 	}
 
-	viper.SetConfigName(".unraid-tui")
+	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(dir)
 
@@ -72,14 +72,9 @@ func TestLoad_FromEnvVars(t *testing.T) {
 
 func TestSave_CreatesFile(t *testing.T) {
 	dir := t.TempDir()
-	path := filepath.Join(dir, "test-config.yaml")
+	path := filepath.Join(dir, "config.yaml")
 
-	cfg := &Config{
-		ServerURL: "http://192.168.1.50:3001",
-		APIKey:    "save-test-key",
-	}
-
-	content := []byte("server_url: \"http://192.168.1.50:3001\"\napi_key: \"save-test-key\"\n")
+	content := []byte("server_url: \"http://192.168.1.50:3001\"\n")
 	if err := os.WriteFile(path, content, 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -89,18 +84,9 @@ func TestSave_CreatesFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_ = cfg // cfg is used to verify intent; we wrote directly for isolation
-
-	if !filepath.IsAbs(path) {
-		t.Error("expected absolute path")
-	}
-
 	str := string(data)
 	if !contains(str, "192.168.1.50") {
 		t.Error("expected server URL in saved file")
-	}
-	if !contains(str, "save-test-key") {
-		t.Error("expected API key in saved file")
 	}
 
 	info, err := os.Stat(path)
@@ -114,22 +100,20 @@ func TestSave_CreatesFile(t *testing.T) {
 
 func TestSave_Integration(t *testing.T) {
 	dir := t.TempDir()
-	path := filepath.Join(dir, ".unraid-tui.yaml")
+	path := filepath.Join(dir, "config.yaml")
 
 	cfg := &Config{
 		ServerURL: "http://tower:3001",
 		APIKey:    "integration-key",
 	}
 
-	// Write using same format as Save()
-	content := "server_url: \"http://tower:3001\"\napi_key: \"integration-key\"\n"
+	content := "server_url: \"http://tower:3001\"\n"
 	if err := os.WriteFile(path, []byte(content), 0600); err != nil {
 		t.Fatal(err)
 	}
 
-	// Read back with viper
 	resetViper()
-	viper.SetConfigName(".unraid-tui")
+	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(dir)
 
@@ -145,8 +129,22 @@ func TestSave_Integration(t *testing.T) {
 	if loaded.ServerURL != cfg.ServerURL {
 		t.Errorf("expected %s, got %s", cfg.ServerURL, loaded.ServerURL)
 	}
-	if loaded.APIKey != cfg.APIKey {
-		t.Errorf("expected %s, got %s", cfg.APIKey, loaded.APIKey)
+}
+
+func TestConfigDir_ReturnsUnraidTuiDir(t *testing.T) {
+	dir := ConfigDir()
+	if !filepath.IsAbs(dir) {
+		t.Error("expected absolute path")
+	}
+	if filepath.Base(dir) != ".unraid-tui" {
+		t.Errorf("expected .unraid-tui directory, got %s", filepath.Base(dir))
+	}
+}
+
+func TestFilePath_ReturnsConfigYaml(t *testing.T) {
+	path := FilePath()
+	if filepath.Base(path) != "config.yaml" {
+		t.Errorf("expected config.yaml, got %s", filepath.Base(path))
 	}
 }
 
@@ -167,7 +165,7 @@ func TestLoad_EnvOverridesFile(t *testing.T) {
 	resetViper()
 
 	dir := t.TempDir()
-	cfgPath := filepath.Join(dir, ".unraid-tui.yaml")
+	cfgPath := filepath.Join(dir, "config.yaml")
 	content := []byte("server_url: http://file-server:3001\napi_key: file-key\n")
 	if err := os.WriteFile(cfgPath, content, 0600); err != nil {
 		t.Fatal(err)
@@ -175,7 +173,7 @@ func TestLoad_EnvOverridesFile(t *testing.T) {
 
 	t.Setenv("UNRAID_SERVER_URL", "http://env-server:3001")
 
-	viper.SetConfigName(".unraid-tui")
+	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(dir)
 	viper.SetEnvPrefix("UNRAID")

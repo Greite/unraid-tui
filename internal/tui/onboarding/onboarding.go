@@ -319,7 +319,7 @@ func (m Model) renderWelcome() string {
 	content += "  2. Tester la connexion\n"
 	content += "  3. Configurer votre cle API\n"
 	content += "  4. Sauvegarder la configuration\n\n"
-	content += "Le fichier sera sauvegarde dans ~/.unraid-tui.yaml"
+	content += "Le fichier sera sauvegarde dans ~/.unraid-tui/config.yaml"
 
 	return box.Render(content) + "\n\n" + actionHint("enter", "commencer") + "  " + escHint()
 }

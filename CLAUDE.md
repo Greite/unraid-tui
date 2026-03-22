@@ -51,7 +51,7 @@ internal/tui/onboarding/ → Assistant de configuration au premier lancement
 
 ## Config
 
-Fichier `~/.unraid-tui.yaml` ou variables d'environnement `UNRAID_SERVER_URL` et `UNRAID_API_KEY`.
+Fichier `~/.unraid-tui/config.yaml` ou variables d'environnement `UNRAID_SERVER_URL` et `UNRAID_API_KEY`.
 
 ## Onboarding
 

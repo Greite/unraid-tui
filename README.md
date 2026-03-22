@@ -101,11 +101,11 @@ Au premier lancement, un assistant interactif vous guide pour :
 3. Creer et configurer votre cle API
 4. Sauvegarder la configuration
 
-La configuration est enregistree dans `~/.unraid-tui.yaml`.
+La configuration est enregistree dans `~/.unraid-tui/config.yaml`.
 
 ### Configuration manuelle
 
-Si vous preferez configurer manuellement, creez le fichier `~/.unraid-tui.yaml` :
+Si vous preferez configurer manuellement, creez le fichier `~/.unraid-tui/config.yaml` :
 
 ```yaml
 server_url: "http://192.168.1.100:3001"

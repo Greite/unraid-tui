@@ -2,7 +2,7 @@
 
 ## Fichier de configuration
 
-L'application cherche un fichier `~/.unraid-tui.yaml` dans le répertoire home de l'utilisateur.
+L'application cherche un fichier `~/.unraid-tui/config.yaml` dans le répertoire home de l'utilisateur.
 
 ### Format
 
@@ -62,7 +62,7 @@ mutation {
 }
 ```
 
-5. Copier la clé retournée dans `~/.unraid-tui.yaml`
+5. Copier la clé retournée dans `~/.unraid-tui/config.yaml`
 
 ## Validation
 

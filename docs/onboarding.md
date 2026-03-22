@@ -5,7 +5,7 @@ L'onboarding est un assistant de configuration interactif qui se lance automatiq
 ## Declenchement
 
 L'onboarding se lance si :
-- Le fichier `~/.unraid-tui.yaml` n'existe pas
+- Le fichier `~/.unraid-tui/config.yaml` n'existe pas
 - **Et** les variables d'environnement `UNRAID_SERVER_URL` / `UNRAID_API_KEY` ne sont pas definies
 
 Si la config existe (fichier ou env vars), le dashboard se lance directement.
@@ -26,7 +26,7 @@ Si la config existe (fichier ou env vars), le dashboard se lance directement.
 │    3. Configurer votre cle API                         │
 │    4. Sauvegarder la configuration                     │
 │                                                        │
-│  Le fichier sera sauvegarde dans ~/.unraid-tui.yaml    │
+│  Le fichier sera sauvegarde dans ~/.unraid-tui/config.yaml    │
 ╰────────────────────────────────────────────────────────╯
 
   enter commencer  esc retour
@@ -86,7 +86,7 @@ Envoie une requete authentifiee (`info { os { hostname } }`) pour verifier que l
 
 ### 7. Sauvegarde
 
-Ecrit le fichier `~/.unraid-tui.yaml` avec les permissions `0600` (lecture/ecriture proprietaire uniquement).
+Ecrit le fichier `~/.unraid-tui/config.yaml` avec les permissions `0600` (lecture/ecriture proprietaire uniquement).
 
 Format du fichier :
 ```yaml
@@ -101,7 +101,7 @@ api_key: "votre-cle-api"
 │  Configuration terminee !                              │
 │                                                        │
 │  Votre configuration a ete sauvegardee dans :          │
-│    ~/.unraid-tui.yaml                                  │
+│    ~/.unraid-tui/config.yaml                                  │
 │                                                        │
 │  Serveur : http://192.168.1.100:3001                   │
 │  Cle API : ********** (sauvegardee)                    │
