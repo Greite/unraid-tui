@@ -292,6 +292,10 @@ Detailed documentation for each feature is in the [`docs/`](docs/) directory:
 - [Navigation](docs/navigation.md)
 - [API Client](docs/api-client.md)
 
+## Disclaimer
+
+This project is not affiliated with, endorsed by, or associated with [Lime Technology, Inc.](https://lime-technology.com/) or the [Unraid](https://unraid.net/) project. Unraid is a registered trademark of Lime Technology, Inc. This is an independent, open-source tool that interacts with the Unraid API.
+
 ## License
 
 MIT
