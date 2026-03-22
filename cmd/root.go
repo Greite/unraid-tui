@@ -15,17 +15,19 @@ import (
 
 // Set by GoReleaser via ldflags.
 var (
-	version    = "dev"
-	commit     = "none"
-	date       = "unknown"
-	serverFlag string
-	langFlag   string
+	version     = "dev"
+	commit      = "none"
+	date        = "unknown"
+	serverFlag  string
+	langFlag    string
+	versionFlag bool
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "unraid-tui",
-	Short: "Terminal UI for Unraid server management",
-	Long:  "A TUI application to monitor and manage your Unraid server from the terminal.",
+	Use:     "unraid-tui",
+	Version: "dev",
+	Short:   "Terminal UI for Unraid server management",
+	Long:    "A TUI application to monitor and manage your Unraid server from the terminal.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		if langFlag != "" {
 			i18n.SetLang(langFlag)
@@ -56,13 +58,6 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Print version information",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("unraid-tui %s (commit: %s, built: %s)\n", version, commit, date)
-	},
-}
 
 var serversCmd = &cobra.Command{
 	Use:   "servers",
@@ -103,9 +98,9 @@ var addServerCmd = &cobra.Command{
 }
 
 func init() {
+	rootCmd.Version = fmt.Sprintf("%s (commit: %s, built: %s)", version, commit, date)
 	rootCmd.PersistentFlags().StringVar(&serverFlag, "server", "", "server name to connect to")
 	rootCmd.PersistentFlags().StringVar(&langFlag, "lang", "", "language (en, fr)")
-	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(serversCmd)
 	rootCmd.AddCommand(addServerCmd)
 }
