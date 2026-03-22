@@ -9,6 +9,7 @@ import (
 	"charm.land/bubbles/v2/spinner"
 	"charm.land/lipgloss/v2"
 	"github.com/Greite/unraid-tui/internal/api"
+	"github.com/Greite/unraid-tui/internal/i18n"
 	"github.com/Greite/unraid-tui/internal/model"
 	"github.com/Greite/unraid-tui/internal/tui/common"
 )
@@ -96,15 +97,15 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 func (m Model) View() string {
 	if m.loading {
-		return "\n  " + m.spinner.View() + " Chargement des VMs..."
+		return "\n  " + m.spinner.View() + " " + i18n.T("loading_vms")
 	}
 
 	var s strings.Builder
 
 	if m.err != nil {
 		if strings.Contains(m.err.Error(), "not available") {
-			s.WriteString("\n  " + common.StyleSubtle.Render("Les VMs ne sont pas activees sur ce serveur.") + "\n")
-			s.WriteString("  " + common.StyleSubtle.Render("Activez-les dans Settings > VM Manager.") + "\n")
+			s.WriteString("\n  " + common.StyleSubtle.Render(i18n.T("vms_disabled")) + "\n")
+			s.WriteString("  " + common.StyleSubtle.Render(i18n.T("vms_enable")) + "\n")
 			return s.String()
 		}
 		s.WriteString("\n  " + common.StyleError.Render("⚠ "+m.err.Error()) + "\n")
@@ -116,8 +117,8 @@ func (m Model) View() string {
 			running++
 		}
 	}
-	title := common.StyleTitle.Render(fmt.Sprintf("  VMs (%d)", len(m.vms)))
-	status := common.StyleSubtle.Render(fmt.Sprintf("  %d running", running))
+	title := common.StyleTitle.Render(fmt.Sprintf("  %s (%d)", i18n.T("page_vms"), len(m.vms)))
+	status := common.StyleSubtle.Render(fmt.Sprintf("  %d %s", running, i18n.T("running")))
 	s.WriteString("\n" + title + status + "\n\n")
 
 	// Header
@@ -153,7 +154,7 @@ func (m Model) View() string {
 	}
 
 	if len(m.vms) == 0 && m.err == nil {
-		s.WriteString("  Aucune VM configuree\n")
+		s.WriteString("  " + i18n.T("no_vms") + "\n")
 	}
 
 	// Actions for selected VM
@@ -162,16 +163,16 @@ func (m Model) View() string {
 		var actions []string
 		lower := strings.ToLower(v.State)
 		if lower == "running" {
-			actions = append(actions, "S: stop", "P: pause", "R: reboot", "F: force stop")
+			actions = append(actions, "S: "+i18n.T("stop"), "P: "+i18n.T("pause"), "R: "+i18n.T("reboot"), "F: "+i18n.T("force_stop"))
 		} else if lower == "paused" {
-			actions = append(actions, "P: resume")
+			actions = append(actions, "P: "+i18n.T("resume"))
 		} else {
-			actions = append(actions, "S: start")
+			actions = append(actions, "S: "+i18n.T("start"))
 		}
 		s.WriteString("\n  " + common.StyleSubtle.Render(strings.Join(actions, "  │  ")))
 	}
 
-	s.WriteString("\n" + common.StyleSubtle.Render("  ↑/↓: naviguer  │  r: rafraîchir") + "\n")
+	s.WriteString("\n" + common.StyleSubtle.Render("  ↑/↓: "+i18n.T("navigate")+"  │  r: "+i18n.T("refresh")) + "\n")
 	return s.String()
 }
 

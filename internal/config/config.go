@@ -150,6 +150,35 @@ func SaveServer(name string, cfg *Config) error {
 	return nil
 }
 
+// RemoveServer removes a named server from the config.
+func RemoveServer(name string) error {
+	mc, err := loadMultiConfig()
+	if err != nil {
+		return err
+	}
+
+	newServers := make([]ServerEntry, 0, len(mc.Servers))
+	for _, s := range mc.Servers {
+		if s.Name != name {
+			newServers = append(newServers, s)
+		}
+	}
+	mc.Servers = newServers
+
+	if mc.Default == name && len(mc.Servers) > 0 {
+		mc.Default = mc.Servers[0].Name
+	}
+
+	data, _ := yaml.Marshal(mc)
+	if err := os.WriteFile(FilePath(), data, 0600); err != nil {
+		return err
+	}
+
+	// Remove API key from keychain
+	keyring.Delete(keyringService, keyringUser(name))
+	return nil
+}
+
 // Load reads config for the default server.
 func Load() (*Config, error) {
 	return LoadServer("")

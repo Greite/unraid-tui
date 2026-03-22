@@ -123,7 +123,7 @@ func TestDashboard_View_Loading(t *testing.T) {
 	m.width = 80
 	m.height = 24
 	view := m.View()
-	if !strings.Contains(view, "Chargement") {
+	if !strings.Contains(view, "Loading") {
 		t.Error("expected loading message in view")
 	}
 }

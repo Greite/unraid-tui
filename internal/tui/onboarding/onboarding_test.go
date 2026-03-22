@@ -256,11 +256,11 @@ func TestView_WelcomeContainsExpectedContent(t *testing.T) {
 	m.width = 80
 	m.height = 30
 	v := m.View()
-	if !strings.Contains(v.Content, "Bienvenue") {
-		t.Error("expected 'Bienvenue' in welcome view")
+	if !strings.Contains(v.Content, "Welcome") {
+		t.Error("expected 'Welcome' in welcome view")
 	}
-	if !strings.Contains(v.Content, "commencer") {
-		t.Error("expected 'commencer' hint in welcome view")
+	if !strings.Contains(v.Content, "begin") {
+		t.Error("expected 'begin' hint in welcome view")
 	}
 }
 
@@ -271,8 +271,8 @@ func TestView_DoneContainsSuccess(t *testing.T) {
 	m.height = 30
 	m.serverURL.SetValue("http://tower:3001")
 	v := m.View()
-	if !strings.Contains(v.Content, "terminee") {
-		t.Error("expected 'terminee' in done view")
+	if !strings.Contains(v.Content, "complete") {
+		t.Error("expected 'complete' in done view")
 	}
 	if !strings.Contains(v.Content, "tower") {
 		t.Error("expected server URL in done view")
@@ -285,8 +285,8 @@ func TestView_ServerURLStep(t *testing.T) {
 	m.width = 80
 	m.height = 30
 	v := m.View()
-	if !strings.Contains(v.Content, "Etape 2/4") {
-		t.Error("expected 'Etape 2/4' in server URL view")
+	if !strings.Contains(v.Content, "2/4") {
+		t.Error("expected '2/4' in server URL view")
 	}
 	if !strings.Contains(v.Content, "3001") {
 		t.Error("expected port hint in server URL view")

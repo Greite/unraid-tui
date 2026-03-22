@@ -19,18 +19,18 @@ const (
 	PageCount
 )
 
-func (p Page) String() string {
+func (p Page) Key() string {
 	switch p {
 	case PageDashboard:
-		return "Dashboard"
+		return "page_dashboard"
 	case PageDocker:
-		return "Docker"
+		return "page_docker"
 	case PageVMs:
-		return "VMs"
+		return "page_vms"
 	case PageNotifications:
-		return "Notifs"
+		return "page_notifications"
 	case PageShares:
-		return "Shares"
+		return "page_shares"
 	default:
 		return "Unknown"
 	}
@@ -86,6 +86,9 @@ type SharesListMsg struct {
 	Shares []model.Share
 	Err    error
 }
+
+// NotifRefreshRequestMsg asks the app to refresh the notification badge.
+type NotifRefreshRequestMsg struct{}
 
 type NotificationsOverviewMsg struct {
 	Overview *model.NotificationOverview

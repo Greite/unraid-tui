@@ -10,6 +10,7 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/Greite/unraid-tui/internal/api"
 	"github.com/Greite/unraid-tui/internal/config"
+	"github.com/Greite/unraid-tui/internal/i18n"
 	"github.com/Greite/unraid-tui/internal/model"
 	"github.com/Greite/unraid-tui/internal/tui/common"
 	"github.com/Greite/unraid-tui/internal/tui/dashboard"
@@ -44,8 +45,11 @@ type Model struct {
 	serverList       []config.ServerEntry
 	serverCursor     int
 	// Inline onboarding
-	onboarding    *onboarding.Model
+	onboarding     *onboarding.Model
 	showOnboarding bool
+	// Language picker
+	showLangPicker bool
+	langCursor     int
 }
 
 func NewModel(client api.UnraidClient) Model {
@@ -68,6 +72,11 @@ func (m Model) Init() tea.Cmd {
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// Language picker mode
+	if m.showLangPicker {
+		return m.updateLangPicker(msg)
+	}
+
 	// Inline onboarding mode
 	if m.showOnboarding && m.onboarding != nil {
 		updated, cmd := m.onboarding.Update(msg)
@@ -129,6 +138,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case msg.Code == 'c' && msg.Mod&tea.ModCtrl != 0:
 			return m, tea.Quit
+		case msg.Code == 'l' && msg.Mod&tea.ModCtrl != 0:
+			m.showLangPicker = true
+			m.langCursor = 0
+			if i18n.Lang() == "fr" {
+				m.langCursor = 1
+			}
+			return m, nil
 		case msg.Code == 's' && msg.Mod&tea.ModCtrl != 0:
 			m.serverList = config.ListServers()
 			m.serverCursor = 0
@@ -163,6 +179,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		}
+
+	case common.NotifRefreshRequestMsg:
+		return m, m.fetchNotifOverview
 
 	case common.NotificationsOverviewMsg:
 		if msg.Err == nil {
@@ -230,7 +249,9 @@ func (m Model) View() tea.View {
 
 	var content string
 
-	if m.showOnboarding && m.onboarding != nil {
+	if m.showLangPicker {
+		content = m.renderLangPicker()
+	} else if m.showOnboarding && m.onboarding != nil {
 		obView := m.onboarding.View()
 		content = obView.Content
 	} else if m.showServerPicker {
@@ -298,13 +319,26 @@ func (m Model) updateServerPicker(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.showServerPicker = false
 				return m, m.switchToServer(s.Name)
 			}
-			// "Add new" option (last item)
 			if m.serverCursor == len(m.serverList) {
 				m.showServerPicker = false
 				ob := onboarding.New()
 				m.onboarding = &ob
 				m.showOnboarding = true
 				return m, m.onboarding.Init()
+			}
+		case "d":
+			if m.serverCursor < len(m.serverList) {
+				s := m.serverList[m.serverCursor]
+				config.SetDefault(s.Name)
+			}
+		case "x":
+			if m.serverCursor < len(m.serverList) && len(m.serverList) > 1 {
+				s := m.serverList[m.serverCursor]
+				config.RemoveServer(s.Name)
+				m.serverList = config.ListServers()
+				if m.serverCursor >= len(m.serverList) {
+					m.serverCursor = len(m.serverList) - 1
+				}
 			}
 		}
 	}
@@ -327,7 +361,7 @@ func (m Model) renderServerPicker() string {
 	s.WriteString("\n")
 
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(common.ColorPrimary)
-	s.WriteString(titleStyle.Render("  Serveurs") + "\n\n")
+	s.WriteString(titleStyle.Render("  " + i18n.T("server_picker_title")) + "\n\n")
 
 	def := config.DefaultServer()
 	selectedStyle := lipgloss.NewStyle().
@@ -348,14 +382,72 @@ func (m Model) renderServerPicker() string {
 	}
 
 	// Add new option
-	addRow := "  + Ajouter un serveur..."
+	addRow := "  " + i18n.T("add_server")
 	if m.serverCursor == len(m.serverList) {
 		s.WriteString(selectedStyle.Render(addRow) + "\n")
 	} else {
 		s.WriteString(common.StyleSubtle.Render(addRow) + "\n")
 	}
 
-	s.WriteString("\n" + common.StyleSubtle.Render("  enter: selectionner  │  esc: fermer  │  * = defaut") + "\n")
+	s.WriteString("\n" + common.StyleSubtle.Render("  enter: "+i18n.T("connect")+"  │  d: "+i18n.T("default")+"  │  x: "+i18n.T("delete")+"  │  esc: "+i18n.T("close")) + "\n")
+	return s.String()
+}
+
+var langOptions = []struct {
+	code string
+	name string
+}{
+	{"en", "English"},
+	{"fr", "Francais"},
+}
+
+func (m Model) updateLangPicker(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyPressMsg:
+		switch msg.String() {
+		case "esc", "ctrl+l":
+			m.showLangPicker = false
+		case "up", "k":
+			if m.langCursor > 0 {
+				m.langCursor--
+			}
+		case "down", "j":
+			if m.langCursor < len(langOptions)-1 {
+				m.langCursor++
+			}
+		case "enter":
+			i18n.SetLang(langOptions[m.langCursor].code)
+			m.showLangPicker = false
+		}
+	}
+	return m, nil
+}
+
+func (m Model) renderLangPicker() string {
+	var s strings.Builder
+	s.WriteString("\n")
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(common.ColorPrimary)
+	s.WriteString(titleStyle.Render("  Language / Langue") + "\n\n")
+
+	selectedStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FFFFFF")).
+		Background(lipgloss.Color("#CC6A1E"))
+
+	for idx, opt := range langOptions {
+		marker := "  "
+		if opt.code == i18n.Lang() {
+			marker = "* "
+		}
+		row := fmt.Sprintf("  %s%s  (%s)", marker, opt.name, opt.code)
+		if idx == m.langCursor {
+			s.WriteString(selectedStyle.Render(row) + "\n")
+		} else {
+			s.WriteString(row + "\n")
+		}
+	}
+
+	s.WriteString("\n" + common.StyleSubtle.Render("  enter: "+i18n.T("select")+"  │  esc: "+i18n.T("close")+"  │  * = "+i18n.T("default")) + "\n")
 	return s.String()
 }
 

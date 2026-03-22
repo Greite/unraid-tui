@@ -14,6 +14,7 @@ import (
 	"charm.land/bubbles/v2/spinner"
 	"charm.land/lipgloss/v2"
 	"github.com/Greite/unraid-tui/internal/api"
+	"github.com/Greite/unraid-tui/internal/i18n"
 	"github.com/Greite/unraid-tui/internal/model"
 	"github.com/Greite/unraid-tui/internal/tui/common"
 )
@@ -193,7 +194,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	case LogsMsg:
 		if msg.Err != nil {
-			m.statusMsg = "Erreur logs: " + msg.Err.Error()
+			m.statusMsg = fmt.Sprintf(i18n.T("logs_error"), msg.Err.Error())
 			return m, nil
 		}
 		m.mode = viewLogs
@@ -211,17 +212,17 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	case ContainerActionMsg:
 		if msg.Err != nil {
-			m.statusMsg = fmt.Sprintf("Erreur %s %s: %s", msg.Action, msg.Name, msg.Err)
+			m.statusMsg = fmt.Sprintf(i18n.T("action_error"), msg.Action, msg.Name, msg.Err)
 		} else {
-			m.statusMsg = fmt.Sprintf("%s %s OK", msg.Action, msg.Name)
+			m.statusMsg = fmt.Sprintf(i18n.T("action_ok"), msg.Action, msg.Name)
 		}
 		return m, m.fetchContainers
 
 	case ConsoleOutputMsg:
 		if msg.Err != nil {
-			m.statusMsg = "Console terminee avec erreur"
+			m.statusMsg = i18n.T("console_error")
 		} else {
-			m.statusMsg = "Console terminee"
+			m.statusMsg = i18n.T("console_done")
 		}
 
 	case common.ContainersMsg:
@@ -315,9 +316,9 @@ func (m Model) viewLogs() string {
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(common.ColorPrimary)
 	followIndicator := ""
 	if m.logsFollow {
-		followIndicator = common.StyleSuccess.Render("  ● FOLLOW")
+		followIndicator = common.StyleSuccess.Render("  ● " + i18n.T("follow_on"))
 	} else {
-		followIndicator = common.StyleSubtle.Render("  ○ PAUSE")
+		followIndicator = common.StyleSubtle.Render("  ○ " + i18n.T("follow_off"))
 	}
 	s.WriteString("\n" + titleStyle.Render(fmt.Sprintf("  Logs — %s", m.logsName)) + followIndicator + "\n")
 	s.WriteString(common.StyleSubtle.Render("  "+strings.Repeat("─", 40)) + "\n")
@@ -347,24 +348,24 @@ func (m Model) viewLogs() string {
 		if maxOff := total - visible; maxOff > 0 {
 			pct = m.logsOffset * 100 / maxOff
 		}
-		pos = fmt.Sprintf("  ligne %d-%d / %d (%d%%)", start+1, end, total, pct)
+		pos = fmt.Sprintf("  %s %d-%d / %d (%d%%)", i18n.T("line"), start+1, end, total, pct)
 	}
 
-	s.WriteString("\n" + common.StyleSubtle.Render(pos+"  │  ↑/↓: scroll  │  f: follow  │  g/G: debut/fin  │  esc: retour") + "\n")
+	s.WriteString("\n" + common.StyleSubtle.Render(pos+"  │  ↑/↓: "+i18n.T("scroll")+"  │  f: "+i18n.T("follow")+"  │  g/G: "+i18n.T("start_end")+"  │  esc: "+i18n.T("back")) + "\n")
 	return s.String()
 }
 
 func (m Model) viewList() string {
 	if m.loading {
-		return "\n  " + m.spinner.View() + " Chargement des containers..."
+		return "\n  " + m.spinner.View() + " " + i18n.T("loading_docker")
 	}
 
 	var s strings.Builder
 
 	if m.err != nil {
 		if strings.Contains(m.err.Error(), "not available") {
-			s.WriteString("\n  " + common.StyleSubtle.Render("Docker n'est pas active sur ce serveur.") + "\n")
-			s.WriteString("  " + common.StyleSubtle.Render("Activez-le dans Settings > Docker.") + "\n")
+			s.WriteString("\n  " + common.StyleSubtle.Render(i18n.T("docker_disabled")) + "\n")
+			s.WriteString("  " + common.StyleSubtle.Render(i18n.T("docker_enable")) + "\n")
 			return s.String()
 		}
 		s.WriteString("\n  " + common.StyleError.Render("⚠ "+m.err.Error()) + "\n")
@@ -380,8 +381,8 @@ func (m Model) viewList() string {
 			running++
 		}
 	}
-	title := common.StyleTitle.Render(fmt.Sprintf("  Containers (%d)", len(m.containers)))
-	status := common.StyleSubtle.Render(fmt.Sprintf("  %d running", running))
+	title := common.StyleTitle.Render(fmt.Sprintf("  %s (%d)", i18n.T("containers"), len(m.containers)))
+	status := common.StyleSubtle.Render(fmt.Sprintf("  %d %s", running, i18n.T("running")))
 	s.WriteString("\n" + title + status + "\n\n")
 
 	colName, colImage, colState, colStatus, colPorts := m.colWidths()
@@ -460,24 +461,24 @@ func (m Model) viewList() string {
 		c := m.sorted[m.cursor]
 		var actions []string
 		if c.State == "running" {
-			actions = append(actions, "S: stop", "P: pause", "l: logs", "c: console")
+			actions = append(actions, "S: "+i18n.T("stop"), "P: "+i18n.T("pause"), "l: "+i18n.T("logs"), "c: "+i18n.T("console"))
 		} else if c.State == "paused" {
-			actions = append(actions, "P: unpause")
+			actions = append(actions, "P: "+i18n.T("unpause"))
 		} else {
-			actions = append(actions, "S: start")
+			actions = append(actions, "S: "+i18n.T("start"))
 		}
 		if c.UpdateAvailable {
-			actions = append(actions, "u: update")
+			actions = append(actions, "u: "+i18n.T("update"))
 		}
 		if c.WebUI != "" || hasHTTPPort(c.Ports) {
-			actions = append(actions, "w: WebUI")
+			actions = append(actions, "w: "+i18n.T("webui"))
 		}
 		if len(actions) > 0 {
 			s.WriteString("\n  " + common.StyleSubtle.Render(strings.Join(actions, "  │  ")))
 		}
 	}
 
-	s.WriteString("\n" + common.StyleSubtle.Render("  n/i/s/t/p: trier  │  ↑/↓: naviguer  │  r: rafraîchir  │  U: update all") + "\n")
+	s.WriteString("\n" + common.StyleSubtle.Render("  n/i/s/t/p: "+i18n.T("sort")+"  │  ↑/↓: "+i18n.T("navigate")+"  │  r: "+i18n.T("refresh")+"  │  U: "+i18n.T("update_all")) + "\n")
 
 	return s.String()
 }
@@ -651,11 +652,11 @@ func (m *Model) openWebUI() {
 		webURL = guessWebUI(m.client.ServerURL(), c.Ports)
 	}
 	if webURL == "" {
-		m.statusMsg = fmt.Sprintf("Pas de WebUI pour %s", c.Name)
+		m.statusMsg = fmt.Sprintf(i18n.T("no_webui"), c.Name)
 		return
 	}
 	openBrowser(webURL)
-	m.statusMsg = fmt.Sprintf("WebUI ouvert pour %s", c.Name)
+	m.statusMsg = fmt.Sprintf(i18n.T("webui_opened"), c.Name)
 }
 
 // --- Sort ---
@@ -724,11 +725,11 @@ func stateIcon(state string, updateAvailable bool) string {
 	icon := ""
 	switch state {
 	case "running":
-		icon = "● running"
+		icon = "● " + i18n.T("running")
 	case "exited":
-		icon = "○ exited"
+		icon = "○ " + i18n.T("exited")
 	case "paused":
-		icon = "◑ paused"
+		icon = "◑ " + i18n.T("paused")
 	default:
 		icon = state
 	}

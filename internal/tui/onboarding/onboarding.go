@@ -12,6 +12,7 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	"charm.land/lipgloss/v2"
 	"github.com/Greite/unraid-tui/internal/config"
+	"github.com/Greite/unraid-tui/internal/i18n"
 	"github.com/Greite/unraid-tui/internal/tui/common"
 )
 
@@ -175,7 +176,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if keyMsg.String() == "enter" {
 				name := strings.TrimSpace(m.serverName.Value())
 				if name == "" {
-					m.err = fmt.Errorf("le nom du serveur ne peut pas etre vide")
+					m.err = fmt.Errorf("%s", i18n.T("server_name_empty"))
 					return m, nil
 				}
 				m.err = nil
@@ -187,7 +188,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if keyMsg.String() == "enter" {
 				url := strings.TrimSpace(m.serverURL.Value())
 				if url == "" {
-					m.err = fmt.Errorf("l'URL du serveur ne peut pas etre vide")
+					m.err = fmt.Errorf("%s", i18n.T("server_url_empty"))
 					return m, nil
 				}
 				url = normalizeURL(url)
@@ -206,7 +207,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if keyMsg.String() == "enter" {
 				key := strings.TrimSpace(m.apiKey.Value())
 				if key == "" {
-					m.err = fmt.Errorf("la cle API ne peut pas etre vide")
+					m.err = fmt.Errorf("%s", i18n.T("api_key_empty"))
 					return m, nil
 				}
 				m.err = nil
@@ -246,7 +247,7 @@ func (m Model) View() tea.View {
 		Bold(true).
 		Foreground(common.ColorPrimary).
 		MarginBottom(1).
-		Render("  UNRAID CLI — Configuration")
+		Render("  " + i18n.T("onboarding_title"))
 
 	s.WriteString("\n" + title + "\n\n")
 
@@ -307,11 +308,11 @@ func (m Model) renderProgress() string {
 		label string
 		s     step
 	}{
-		{"Nom", stepServerName},
-		{"URL", stepServerURL},
-		{"Connexion", stepTestConnection},
-		{"Cle API", stepAPIKey},
-		{"Termine", stepDone},
+		{i18n.T("step_name"), stepServerName},
+		{i18n.T("step_url"), stepServerURL},
+		{i18n.T("step_connection"), stepTestConnection},
+		{i18n.T("step_api"), stepAPIKey},
+		{i18n.T("step_done"), stepDone},
 	}
 
 	var parts []string
@@ -338,47 +339,47 @@ func (m Model) renderWelcome() string {
 		MarginLeft(2).
 		Width(60)
 
-	content := "Bienvenue !\n\n"
-	content += "Cet assistant va vous aider a configurer la connexion\n"
-	content += "a votre serveur Unraid en quelques etapes :\n\n"
-	content += "  1. Saisir l'adresse de votre serveur\n"
-	content += "  2. Tester la connexion\n"
-	content += "  3. Configurer votre cle API\n"
-	content += "  4. Sauvegarder la configuration\n\n"
-	content += "Le fichier sera sauvegarde dans ~/.unraid-tui/config.yaml"
+	content := i18n.T("welcome") + "\n\n"
+	content += i18n.T("welcome_desc") + "\n\n"
+	content += "  " + i18n.T("step_enter_name") + "\n"
+	content += "  " + i18n.T("step_enter_url") + "\n"
+	content += "  " + i18n.T("step_test") + "\n"
+	content += "  " + i18n.T("step_api_key") + "\n"
+	content += "  " + i18n.T("step_save") + "\n\n"
+	content += i18n.T("config_saved_in")
 
-	return box.Render(content) + "\n\n" + actionHint("enter", "commencer") + "  " + escHint()
+	return box.Render(content) + "\n\n" + actionHint("enter", i18n.T("begin")) + "  " + escHint()
 }
 
 func (m Model) renderServerName() string {
 	var s strings.Builder
-	s.WriteString(stepTitle("Etape 1/4", "Nom du serveur"))
+	s.WriteString(stepTitle("1/4", i18n.T("server_name_title")))
 	s.WriteString("\n")
-	s.WriteString("  Donnez un nom a votre serveur (ex: NAS, Backup, Media).\n")
-	s.WriteString(common.StyleSubtle.Render("  Ce nom permet d'identifier le serveur dans la liste.") + "\n\n")
+	s.WriteString("  " + i18n.T("server_name_desc") + "\n")
+	s.WriteString(common.StyleSubtle.Render("  "+i18n.T("server_name_hint")) + "\n\n")
 	s.WriteString(m.serverName.View() + "\n\n")
-	s.WriteString(actionHint("enter", "continuer") + "  " + escHint())
+	s.WriteString(actionHint("enter", i18n.T("continue")) + "  " + escHint())
 	return s.String()
 }
 
 func (m Model) renderServerURL() string {
 	var s strings.Builder
-	s.WriteString(stepTitle("Etape 2/4", "Adresse du serveur Unraid"))
+	s.WriteString(stepTitle("2/4", i18n.T("server_url_title")))
 	s.WriteString("\n")
-	s.WriteString("  Entrez l'URL de votre serveur Unraid (avec le port).\n")
-	s.WriteString(common.StyleSubtle.Render("  Par defaut, l'API Unraid ecoute sur le port 3001.") + "\n\n")
+	s.WriteString("  " + i18n.T("server_url_desc") + "\n")
+	s.WriteString(common.StyleSubtle.Render("  "+i18n.T("server_url_hint")) + "\n\n")
 	s.WriteString(m.serverURL.View() + "\n\n")
-	s.WriteString(actionHint("enter", "tester la connexion") + "  " + escHint())
+	s.WriteString(actionHint("enter", i18n.T("test_connection")) + "  " + escHint())
 	return s.String()
 }
 
 func (m Model) renderTestConnection() string {
-	return "  " + m.spinner.View() + " Test de la connexion a " + common.StyleTitle.Render(m.serverURL.Value()) + "..."
+	return "  " + m.spinner.View() + " " + i18n.T("testing_connection") + " " + common.StyleTitle.Render(m.serverURL.Value()) + "..."
 }
 
 func (m Model) renderAPIKeyInfo() string {
 	var s strings.Builder
-	s.WriteString(stepTitle("Etape 3/4", "Creer une cle API"))
+	s.WriteString(stepTitle("3/4", i18n.T("api_key_info_title")))
 	s.WriteString("\n")
 
 	box := lipgloss.NewStyle().
@@ -388,12 +389,12 @@ func (m Model) renderAPIKeyInfo() string {
 		MarginLeft(2).
 		Width(64)
 
-	instructions := "Comment obtenir une cle API :\n\n"
-	instructions += "  1. Ouvrez l'interface web de votre serveur Unraid\n"
-	instructions += "  2. Allez dans Settings > Management Access\n"
-	instructions += "  3. Activez Developer Options\n"
-	instructions += "  4. Ouvrez Apollo GraphQL Studio\n"
-	instructions += "  5. Executez cette mutation :\n\n"
+	instructions := i18n.T("api_key_howto") + "\n\n"
+	instructions += "  " + i18n.T("api_step_1") + "\n"
+	instructions += "  " + i18n.T("api_step_2") + "\n"
+	instructions += "  " + i18n.T("api_step_3") + "\n"
+	instructions += "  " + i18n.T("api_step_4") + "\n"
+	instructions += "  " + i18n.T("api_step_5") + "\n\n"
 	instructions += "     mutation {\n"
 	instructions += "       apiKey {\n"
 	instructions += "         create(input: {\n"
@@ -402,30 +403,30 @@ func (m Model) renderAPIKeyInfo() string {
 	instructions += "         }) { key }\n"
 	instructions += "       }\n"
 	instructions += "     }\n\n"
-	instructions += "  6. Copiez la cle retournee\n"
+	instructions += "  " + i18n.T("api_step_6") + "\n"
 
 	s.WriteString(box.Render(instructions) + "\n\n")
-	s.WriteString(actionHint("enter", "saisir la cle") + "  " + escHint())
+	s.WriteString(actionHint("enter", i18n.T("enter_key")) + "  " + escHint())
 	return s.String()
 }
 
 func (m Model) renderAPIKey() string {
 	var s strings.Builder
-	s.WriteString(stepTitle("Etape 4/4", "Saisir la cle API"))
+	s.WriteString(stepTitle("4/4", i18n.T("api_key_title")))
 	s.WriteString("\n")
-	s.WriteString("  Collez votre cle API Unraid ci-dessous.\n")
-	s.WriteString(common.StyleSubtle.Render("  La cle est masquee pour des raisons de securite.") + "\n\n")
+	s.WriteString("  " + i18n.T("api_key_desc") + "\n")
+	s.WriteString(common.StyleSubtle.Render("  "+i18n.T("api_key_hint")) + "\n\n")
 	s.WriteString(m.apiKey.View() + "\n\n")
-	s.WriteString(actionHint("enter", "valider") + "  " + escHint())
+	s.WriteString(actionHint("enter", i18n.T("validate")) + "  " + escHint())
 	return s.String()
 }
 
 func (m Model) renderTestAPIKey() string {
-	return "  " + m.spinner.View() + " Verification de la cle API..."
+	return "  " + m.spinner.View() + " " + i18n.T("testing_api_key")
 }
 
 func (m Model) renderSaving() string {
-	return "  " + m.spinner.View() + " Sauvegarde de la configuration..."
+	return "  " + m.spinner.View() + " " + i18n.T("saving_config")
 }
 
 func (m Model) renderDone() string {
@@ -436,14 +437,14 @@ func (m Model) renderDone() string {
 		MarginLeft(2).
 		Width(60)
 
-	content := "Configuration terminee !\n\n"
-	content += "Votre configuration a ete sauvegardee dans :\n"
+	content := i18n.T("config_done") + "\n\n"
+	content += i18n.T("config_saved_at") + "\n"
 	content += "  " + config.FilePath() + "\n\n"
-	content += "Serveur : " + m.serverURL.Value() + "\n"
-	content += "Cle API : ********** (sauvegardee)\n\n"
-	content += "Le dashboard va maintenant se lancer."
+	content += i18n.T("server_label") + " : " + m.serverURL.Value() + "\n"
+	content += i18n.T("api_key_label") + " : " + i18n.T("api_key_saved") + "\n\n"
+	content += i18n.T("dash_will_launch")
 
-	return box.Render(content) + "\n\n" + actionHint("enter", "lancer le dashboard")
+	return box.Render(content) + "\n\n" + actionHint("enter", i18n.T("launch_dash"))
 }
 
 // --- Commands ---
@@ -561,5 +562,5 @@ func actionHint(key, desc string) string {
 }
 
 func escHint() string {
-	return lipgloss.NewStyle().Foreground(common.ColorMuted).Render("esc retour")
+	return lipgloss.NewStyle().Foreground(common.ColorMuted).Render("esc " + i18n.T("back"))
 }

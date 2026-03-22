@@ -10,6 +10,7 @@ import (
 	"charm.land/bubbles/v2/spinner"
 	"charm.land/lipgloss/v2"
 	"github.com/Greite/unraid-tui/internal/api"
+	"github.com/Greite/unraid-tui/internal/i18n"
 	"github.com/Greite/unraid-tui/internal/model"
 	"github.com/Greite/unraid-tui/internal/tui/common"
 )
@@ -113,7 +114,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 func (m Model) View() string {
 	if m.loading {
-		return "\n  " + m.spinner.View() + " Chargement du dashboard..."
+		return "\n  " + m.spinner.View() + " " + i18n.T("loading")
 	}
 
 	var errLine string
@@ -176,23 +177,23 @@ func (m Model) renderSystemCard() string {
 	if m.systemInfo != nil {
 		info := m.systemInfo
 		if info.OS.Hostname != "" {
-			content += fmt.Sprintf("  Hostname: %s\n", info.OS.Hostname)
+			content += fmt.Sprintf("  %s: %s\n", i18n.T("hostname"), info.OS.Hostname)
 		}
 		content += fmt.Sprintf("  OS: %s %s\n", info.OS.Distro, info.OS.Release)
 		if info.OS.Kernel != "" {
 			content += fmt.Sprintf("  Kernel: %s\n", truncate(info.OS.Kernel, w-10))
 		}
 		if info.OS.Uptime > 0 {
-			content += fmt.Sprintf("  Uptime: %s\n", formatUptime(info.OS.Uptime))
+			content += fmt.Sprintf("  %s: %s\n", i18n.T("uptime"), formatUptime(info.OS.Uptime))
 		}
 		if info.Versions.Unraid != "" {
 			content += fmt.Sprintf("  Unraid: %s\n", info.Versions.Unraid)
 		}
 	} else {
-		content = "  En attente...\n"
+		content = "  " + i18n.T("waiting") + "\n"
 	}
 	return common.StylePanel.Width(w).Render(
-		common.StyleTitle.Render("System") + "\n" + content,
+		common.StyleTitle.Render(i18n.T("system")) + "\n" + content,
 	)
 }
 
@@ -218,10 +219,10 @@ func (m Model) renderCPUCard() string {
 		}
 		content += "  " + common.ProgressBar(m.metrics.CPUUsage, barW) + "\n"
 	} else {
-		content += "  En attente...\n"
+		content += "  " + i18n.T("waiting") + "\n"
 	}
 	return common.StylePanel.Width(w).Render(
-		common.StyleTitle.Render("CPU") + "\n" + content,
+		common.StyleTitle.Render(i18n.T("cpu")) + "\n" + content,
 	)
 }
 
@@ -239,10 +240,10 @@ func (m Model) renderMemoryCard() string {
 		}
 		content += "  " + common.ProgressBar(m.metrics.MemoryPct, barW) + "\n"
 	} else {
-		content = "  En attente...\n"
+		content = "  " + i18n.T("waiting") + "\n"
 	}
 	return common.StylePanel.Width(w).Render(
-		common.StyleTitle.Render("Memory") + "\n" + content,
+		common.StyleTitle.Render(i18n.T("memory")) + "\n" + content,
 	)
 }
 
@@ -270,10 +271,10 @@ func (m Model) renderNetworkCard() string {
 			content += fmt.Sprintf("  %-8s %s\n", typeLabel, truncate(ip, w-14))
 		}
 	} else {
-		content = "  En attente...\n"
+		content = "  " + i18n.T("waiting") + "\n"
 	}
 	return common.StylePanel.Width(w).Render(
-		common.StyleTitle.Render("Network") + "\n" + content,
+		common.StyleTitle.Render(i18n.T("network")) + "\n" + content,
 	)
 }
 
@@ -298,9 +299,9 @@ func (m Model) renderCPUCoresPanel() string {
 			content += line + "\n"
 		}
 	} else {
-		content = "  En attente...\n"
+		content = "  " + i18n.T("waiting") + "\n"
 	}
-	title := "CPU Cores"
+	title := i18n.T("cpu_cores")
 	if m.metrics != nil {
 		title += fmt.Sprintf(" (%d)", len(m.metrics.CPUCores))
 	}
@@ -364,14 +365,14 @@ func (m Model) renderDiskPanel() string {
 	if m.arrayInfo != nil {
 		if m.arrayInfo.ParityRunning {
 			parityBar := common.ProgressBar(m.arrayInfo.ParityProgress, barWidth)
-			content += fmt.Sprintf("\n  Parity: %s %s %.1f%%\n", m.arrayInfo.ParityStatus, parityBar, m.arrayInfo.ParityProgress)
+			content += fmt.Sprintf("\n  %s: %s %s %.1f%%\n", i18n.T("parity"), m.arrayInfo.ParityStatus, parityBar, m.arrayInfo.ParityProgress)
 		} else if m.arrayInfo.ParityStatus != "" {
-			content += fmt.Sprintf("\n  Parity: %s\n", m.arrayInfo.ParityStatus)
+			content += fmt.Sprintf("\n  %s: %s\n", i18n.T("parity"), m.arrayInfo.ParityStatus)
 		}
 	}
 
 	return common.StylePanel.Width(w).Render(
-		common.StyleTitle.Render("Disks") + fmt.Sprintf(" (%d)", len(m.disks)) + "\n" + content,
+		common.StyleTitle.Render(i18n.T("disks")) + fmt.Sprintf(" (%d)", len(m.disks)) + "\n" + content,
 	)
 }
 
@@ -402,9 +403,9 @@ func (m Model) renderHardwarePanel() string {
 		if first.ClockSpeed > 0 {
 			speed = fmt.Sprintf(" %dMHz", first.ClockSpeed)
 		}
-		content += fmt.Sprintf("  RAM    %dx %s %s%s  (%s total)\n",
+		content += fmt.Sprintf("  RAM    %dx %s %s%s  (%s %s)\n",
 			len(hw.RAM), common.FormatBytes(first.Size), ramType, speed,
-			common.FormatBytes(totalRAM))
+			common.FormatBytes(totalRAM), i18n.T("total"))
 	}
 
 	// GPU
@@ -421,12 +422,12 @@ func (m Model) renderHardwarePanel() string {
 
 	// USB summary
 	if len(hw.USBs) > 0 {
-		content += fmt.Sprintf("  USB    %d devices\n", len(hw.USBs))
+		content += fmt.Sprintf("  USB    %d %s\n", len(hw.USBs), i18n.T("devices"))
 	}
 
 	// PCI summary
 	if len(hw.PCIs) > 0 {
-		content += fmt.Sprintf("  PCI    %d devices\n", len(hw.PCIs))
+		content += fmt.Sprintf("  PCI    %d %s\n", len(hw.PCIs), i18n.T("devices"))
 	}
 
 	if content == "" {
@@ -434,7 +435,7 @@ func (m Model) renderHardwarePanel() string {
 	}
 
 	return common.StylePanel.Width(w).Render(
-		common.StyleTitle.Render("Hardware") + "\n" + content,
+		common.StyleTitle.Render(i18n.T("hardware")) + "\n" + content,
 	)
 }
 

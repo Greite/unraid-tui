@@ -2,6 +2,7 @@ package tui
 
 import (
 	"charm.land/lipgloss/v2"
+	"github.com/Greite/unraid-tui/internal/i18n"
 	"github.com/Greite/unraid-tui/internal/tui/common"
 )
 
@@ -20,10 +21,11 @@ var (
 
 func RenderFooter(width int) string {
 	keys := []struct{ key, desc string }{
-		{"F1-F5", "pages"},
-		{"tab", "suivant"},
-		{"^S", "serveurs"},
-		{"q", "quitter"},
+		{"F1-F5", i18n.T("pages")},
+		{"tab", i18n.T("next")},
+		{"^S", i18n.T("servers")},
+		{"^L", i18n.T("lang")},
+		{"q", i18n.T("quit")},
 	}
 
 	content := ""

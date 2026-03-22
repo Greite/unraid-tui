@@ -9,6 +9,7 @@ import (
 	"charm.land/bubbles/v2/spinner"
 	"charm.land/lipgloss/v2"
 	"github.com/Greite/unraid-tui/internal/api"
+	"github.com/Greite/unraid-tui/internal/i18n"
 	"github.com/Greite/unraid-tui/internal/model"
 	"github.com/Greite/unraid-tui/internal/tui/common"
 )
@@ -80,7 +81,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 func (m Model) View() string {
 	if m.loading {
-		return "\n  " + m.spinner.View() + " Chargement des shares..."
+		return "\n  " + m.spinner.View() + " " + i18n.T("loading_shares")
 	}
 
 	var s strings.Builder
@@ -89,11 +90,11 @@ func (m Model) View() string {
 		s.WriteString("\n  " + common.StyleError.Render("⚠ "+m.err.Error()) + "\n")
 	}
 
-	title := common.StyleTitle.Render(fmt.Sprintf("  Shares (%d)", len(m.shares)))
+	title := common.StyleTitle.Render(fmt.Sprintf("  %s (%d)", i18n.T("shares"), len(m.shares)))
 	s.WriteString("\n" + title + "\n\n")
 
 	if len(m.shares) == 0 && m.err == nil {
-		s.WriteString("  Aucun share configure\n")
+		s.WriteString("  " + i18n.T("no_shares") + "\n")
 		return s.String()
 	}
 
@@ -150,7 +151,7 @@ func (m Model) View() string {
 		}
 	}
 
-	s.WriteString("\n" + common.StyleSubtle.Render("  ↑/↓: naviguer  │  r: rafraîchir") + "\n")
+	s.WriteString("\n" + common.StyleSubtle.Render("  ↑/↓: "+i18n.T("navigate")+"  │  r: "+i18n.T("refresh")) + "\n")
 	return s.String()
 }
 

@@ -8,6 +8,7 @@ import (
 
 	"github.com/Greite/unraid-tui/internal/api"
 	"github.com/Greite/unraid-tui/internal/config"
+	"github.com/Greite/unraid-tui/internal/i18n"
 	"github.com/Greite/unraid-tui/internal/tui"
 	"github.com/Greite/unraid-tui/internal/tui/onboarding"
 )
@@ -18,12 +19,20 @@ var (
 	commit     = "none"
 	date       = "unknown"
 	serverFlag string
+	langFlag   string
 )
 
 var rootCmd = &cobra.Command{
 	Use:   "unraid-tui",
 	Short: "Terminal UI for Unraid server management",
 	Long:  "A TUI application to monitor and manage your Unraid server from the terminal.",
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		if langFlag != "" {
+			i18n.SetLang(langFlag)
+		} else {
+			i18n.DetectLang()
+		}
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if !config.Exists() {
 			if err := runOnboarding(); err != nil {
@@ -93,6 +102,7 @@ var addServerCmd = &cobra.Command{
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&serverFlag, "server", "", "server name to connect to")
+	rootCmd.PersistentFlags().StringVar(&langFlag, "lang", "", "language (en, fr)")
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(serversCmd)
 	rootCmd.AddCommand(addServerCmd)

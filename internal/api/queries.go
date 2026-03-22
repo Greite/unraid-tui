@@ -221,5 +221,5 @@ const mutationVMForceStop = `mutation { vm { forceStop(id: "%s") } }`
 const mutationVMReboot = `mutation { vm { reboot(id: "%s") } }`
 
 // Notification mutations
-const mutationArchiveNotification = `mutation { notifications { archive(id: "%s") } }`
-const mutationArchiveAllNotifications = `mutation { notifications { archiveAll } }`
+const mutationArchiveNotification = `mutation { archiveNotification(id: "%s") { id } }`
+const mutationArchiveAllNotifications = `mutation { archiveAll { unread { total } } }`

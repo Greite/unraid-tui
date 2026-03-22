@@ -79,7 +79,7 @@ func TestDocker_View_Loading(t *testing.T) {
 	m.width = 100
 	m.height = 30
 	view := m.View()
-	if !strings.Contains(view, "Chargement") {
+	if !strings.Contains(view, "Loading") {
 		t.Error("expected loading message")
 	}
 }

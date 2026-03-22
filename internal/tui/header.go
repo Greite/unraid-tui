@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"charm.land/lipgloss/v2"
+	"github.com/Greite/unraid-tui/internal/i18n"
 	"github.com/Greite/unraid-tui/internal/model"
 	"github.com/Greite/unraid-tui/internal/tui/common"
 )
@@ -67,10 +68,10 @@ func RenderHeader(activePage common.Page, width int, notifs *model.NotificationO
 		var key, label string
 		if td.page == activePage {
 			key = tabKeyActiveStyle.Render(td.key)
-			label = tabLabelActiveStyle.Render(" " + td.page.String() + " ")
+			label = tabLabelActiveStyle.Render(" " + i18n.T(td.page.Key()) + " ")
 		} else {
 			key = tabKeyStyle.Render(td.key)
-			label = tabLabelStyle.Render(" " + td.page.String() + " ")
+			label = tabLabelStyle.Render(" " + i18n.T(td.page.Key()) + " ")
 		}
 		tab := key + label
 		tabWidth := lipgloss.Width(tab)
