@@ -45,7 +45,7 @@ type TabZone struct {
 	End   int
 }
 
-func RenderHeader(activePage common.Page, width int, notifs *model.NotificationOverview) string {
+func RenderHeader(activePage common.Page, width int, notifs *model.NotificationOverview, dockerUpdates int) string {
 	title := titleStyle.Render(" UNRAID CLI ")
 
 	tabs := ""
@@ -66,12 +66,17 @@ func RenderHeader(activePage common.Page, width int, notifs *model.NotificationO
 
 	for i, td := range tabDefs {
 		var key, label string
+		pageName := i18n.T(td.page.Key())
+		// Add update badge on Docker tab
+		if td.page == common.PageDocker && dockerUpdates > 0 {
+			pageName += fmt.Sprintf(" ⬆%d", dockerUpdates)
+		}
 		if td.page == activePage {
 			key = tabKeyActiveStyle.Render(td.key)
-			label = tabLabelActiveStyle.Render(" " + i18n.T(td.page.Key()) + " ")
+			label = tabLabelActiveStyle.Render(" " + pageName + " ")
 		} else {
 			key = tabKeyStyle.Render(td.key)
-			label = tabLabelStyle.Render(" " + i18n.T(td.page.Key()) + " ")
+			label = tabLabelStyle.Render(" " + pageName + " ")
 		}
 		tab := key + label
 		tabWidth := lipgloss.Width(tab)

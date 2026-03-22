@@ -376,13 +376,20 @@ func (m Model) viewList() string {
 	}
 
 	running := 0
+	updates := 0
 	for _, c := range m.containers {
 		if c.State == "running" {
 			running++
 		}
+		if c.UpdateAvailable {
+			updates++
+		}
 	}
 	title := common.StyleTitle.Render(fmt.Sprintf("  %s (%d)", i18n.T("containers"), len(m.containers)))
 	status := common.StyleSubtle.Render(fmt.Sprintf("  %d %s", running, i18n.T("running")))
+	if updates > 0 {
+		status += "  " + lipgloss.NewStyle().Foreground(common.ColorWarning).Render(fmt.Sprintf("⬆ %d %s", updates, i18n.T("update")))
+	}
 	s.WriteString("\n" + title + status + "\n\n")
 
 	colName, colImage, colState, colStatus, colPorts := m.colWidths()
@@ -468,7 +475,7 @@ func (m Model) viewList() string {
 			actions = append(actions, "S: "+i18n.T("start"))
 		}
 		if c.UpdateAvailable {
-			actions = append(actions, "u: "+i18n.T("update"))
+			actions = append(actions, "u: "+i18n.T("update")+" ⬆")
 		}
 		if c.WebUI != "" || hasHTTPPort(c.Ports) {
 			actions = append(actions, "w: "+i18n.T("webui"))
@@ -550,7 +557,7 @@ func (m Model) doFetchLogs(name, host string) tea.Cmd {
 	}
 }
 
-func (m Model) toggleStartStop() tea.Cmd {
+func (m *Model) toggleStartStop() tea.Cmd {
 	if m.cursor >= len(m.sorted) {
 		return nil
 	}
@@ -560,11 +567,13 @@ func (m Model) toggleStartStop() tea.Cmd {
 	client := m.client
 
 	if c.State == "running" {
+		m.statusMsg = "⏳ " + i18n.T("stop") + " " + name + "..."
 		return func() tea.Msg {
 			err := client.StopContainer(context.Background(), id)
 			return ContainerActionMsg{Action: "Stop", Name: name, Err: err}
 		}
 	}
+	m.statusMsg = "⏳ " + i18n.T("start") + " " + name + "..."
 	return func() tea.Msg {
 		err := client.StartContainer(context.Background(), id)
 		return ContainerActionMsg{Action: "Start", Name: name, Err: err}
@@ -595,16 +604,18 @@ func (m Model) togglePause() tea.Cmd {
 	return nil
 }
 
-func (m Model) updateContainer() tea.Cmd {
+func (m *Model) updateContainer() tea.Cmd {
 	if m.cursor >= len(m.sorted) {
 		return nil
 	}
 	c := m.sorted[m.cursor]
 	if !c.UpdateAvailable {
+		m.statusMsg = c.Name + ": " + i18n.T("up_to_date")
 		return nil
 	}
 	id := c.ID
 	name := c.Name
+	m.statusMsg = "⏳ " + i18n.T("updating") + " " + name + "..."
 	client := m.client
 	return func() tea.Msg {
 		err := client.UpdateContainer(context.Background(), id)
@@ -612,7 +623,8 @@ func (m Model) updateContainer() tea.Cmd {
 	}
 }
 
-func (m Model) updateAllContainers() tea.Cmd {
+func (m *Model) updateAllContainers() tea.Cmd {
+	m.statusMsg = "⏳ " + i18n.T("updating_all") + "..."
 	client := m.client
 	return func() tea.Msg {
 		err := client.UpdateAllContainers(context.Background())
@@ -827,6 +839,17 @@ func (m *Model) SetSize(width, height int) {
 // InSubView returns true when Docker is in logs or another sub-view where 'q' should not quit the app.
 func (m Model) InSubView() bool {
 	return m.mode != viewList
+}
+
+// UpdateCount returns the number of containers with updates available.
+func (m Model) UpdateCount() int {
+	count := 0
+	for _, c := range m.containers {
+		if c.UpdateAvailable {
+			count++
+		}
+	}
+	return count
 }
 
 func (m Model) Refresh() tea.Cmd {

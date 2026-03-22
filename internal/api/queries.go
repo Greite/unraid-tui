@@ -174,7 +174,10 @@ const queryContainers = `query {
 				type
 			}
 			webUiUrl
-			isUpdateAvailable
+		}
+		containerUpdateStatuses {
+			name
+			updateStatus
 		}
 	}
 }`

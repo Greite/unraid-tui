@@ -503,7 +503,13 @@ type dockerData struct {
 }
 
 type dockerPayload struct {
-	Containers []containerPayload `json:"containers"`
+	Containers           []containerPayload        `json:"containers"`
+	ContainerUpdateStatuses []updateStatusPayload  `json:"containerUpdateStatuses"`
+}
+
+type updateStatusPayload struct {
+	Name         string `json:"name"`
+	UpdateStatus string `json:"updateStatus"`
 }
 
 type containerPayload struct {
@@ -513,9 +519,8 @@ type containerPayload struct {
 	State     string        `json:"state"`
 	Status    string        `json:"status"`
 	AutoStart bool          `json:"autoStart"`
-	Ports             []portPayload `json:"ports"`
-	WebUI             string        `json:"webUiUrl"`
-	IsUpdateAvailable bool          `json:"isUpdateAvailable"`
+	Ports []portPayload `json:"ports"`
+	WebUI string        `json:"webUiUrl"`
 }
 
 type portPayload struct {
@@ -524,7 +529,13 @@ type portPayload struct {
 	Type        string `json:"type"`
 }
 
-func containersToDomain(payloads []containerPayload) []model.Container {
+func containersToDomain(payloads []containerPayload, updateStatuses []updateStatusPayload) []model.Container {
+	// Build update status map by name
+	updateMap := make(map[string]bool)
+	for _, u := range updateStatuses {
+		updateMap[u.Name] = u.UpdateStatus == "UPDATE_AVAILABLE"
+	}
+
 	containers := make([]model.Container, len(payloads))
 	for i, p := range payloads {
 		ports := make([]model.Port, len(p.Ports))
@@ -554,7 +565,7 @@ func containersToDomain(payloads []containerPayload) []model.Container {
 			Status:          p.Status,
 			Ports:           ports,
 			WebUI:           p.WebUI,
-			UpdateAvailable: p.IsUpdateAvailable,
+			UpdateAvailable: updateMap[name],
 		}
 	}
 	return containers

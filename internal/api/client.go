@@ -134,7 +134,7 @@ func (c *httpClient) GetContainers(ctx context.Context) ([]model.Container, erro
 	if len(result.Errors) > 0 {
 		return nil, fmt.Errorf("graphql: %s", result.Errors[0].Message)
 	}
-	return containersToDomain(result.Data.Docker.Containers), nil
+	return containersToDomain(result.Data.Docker.Containers, result.Data.Docker.ContainerUpdateStatuses), nil
 }
 
 func (c *httpClient) StartContainer(ctx context.Context, id string) error {

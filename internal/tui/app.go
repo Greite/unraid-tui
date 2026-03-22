@@ -245,7 +245,7 @@ func (m Model) refreshActivePage() tea.Cmd {
 }
 
 func (m Model) View() tea.View {
-	header := RenderHeader(m.activePage, m.width, m.notifOverview)
+	header := RenderHeader(m.activePage, m.width, m.notifOverview, m.docker.UpdateCount())
 
 	var content string
 
