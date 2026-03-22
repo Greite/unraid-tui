@@ -34,6 +34,51 @@ type systemInfoPayload struct {
 	OS  osPayload  `json:"os"`
 }
 
+type systemInfoExtraData struct {
+	Info systemInfoExtraPayload `json:"info"`
+}
+
+type systemInfoExtraPayload struct {
+	Versions *versionsPayload `json:"versions"`
+	Devices  *devicesPayload  `json:"devices"`
+	Memory   *infoMemPayload  `json:"memory"`
+}
+
+type versionsPayload struct {
+	Core coreVersionsPayload `json:"core"`
+}
+
+type coreVersionsPayload struct {
+	Unraid string `json:"unraid"`
+	API    string `json:"api"`
+	Kernel string `json:"kernel"`
+}
+
+type devicesPayload struct {
+	GPU []devicePayload `json:"gpu"`
+	PCI []devicePayload `json:"pci"`
+	USB []devicePayload `json:"usb"`
+}
+
+type devicePayload struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Vendor string `json:"vendor"`
+	Model  string `json:"model"`
+}
+
+type infoMemPayload struct {
+	Layout []ramLayoutPayload `json:"layout"`
+}
+
+type ramLayoutPayload struct {
+	Size         uint64 `json:"size"`
+	Type         string `json:"type"`
+	ClockSpeed   int    `json:"clockSpeed"`
+	Manufacturer string `json:"manufacturer"`
+	Bank         string `json:"bank"`
+}
+
 type cpuPayload struct {
 	Manufacturer string             `json:"manufacturer"`
 	Brand        string             `json:"brand"`
@@ -75,6 +120,39 @@ func (p *systemInfoPayload) toDomain() *model.SystemInfo {
 			Kernel:   p.OS.Kernel,
 		},
 	}
+}
+
+func (p *systemInfoExtraPayload) applyTo(info *model.SystemInfo) {
+	if p.Versions != nil {
+		info.Versions = model.VersionInfo{
+			Unraid: p.Versions.Core.Unraid,
+			API:    p.Versions.Core.API,
+			Kernel: p.Versions.Core.Kernel,
+		}
+	}
+	if p.Devices != nil {
+		info.Hardware = model.HardwareInfo{
+			GPUs: devicesToDomain(p.Devices.GPU),
+			PCIs: devicesToDomain(p.Devices.PCI),
+			USBs: devicesToDomain(p.Devices.USB),
+		}
+	}
+	if p.Memory != nil {
+		for _, l := range p.Memory.Layout {
+			info.Hardware.RAM = append(info.Hardware.RAM, model.RAMModule{
+				Size: l.Size, Type: l.Type, ClockSpeed: l.ClockSpeed,
+				Manufacturer: l.Manufacturer, Bank: l.Bank,
+			})
+		}
+	}
+}
+
+func devicesToDomain(payloads []devicePayload) []model.DeviceInfo {
+	devs := make([]model.DeviceInfo, len(payloads))
+	for i, p := range payloads {
+		devs[i] = model.DeviceInfo{ID: p.ID, Name: p.Name, Vendor: p.Vendor, Model: p.Model}
+	}
+	return devs
 }
 
 func cpuTemp(pkg *cpuPackagesPayload) float64 {
@@ -152,6 +230,41 @@ func (p *metricsPayload) toDomain() *model.SystemMetrics {
 		MemoryTotal: p.Memory.Total,
 		MemoryPct:   p.Memory.PercentTotal,
 	}
+}
+
+// Parity history response types.
+type parityHistoryData struct {
+	Array parityHistoryArrayPayload `json:"array"`
+}
+
+type parityHistoryArrayPayload struct {
+	ParityHistory []parityHistoryPayload `json:"parityHistory"`
+}
+
+type parityHistoryPayload struct {
+	Date     string `json:"date"`
+	Status   string `json:"status"`
+	Duration string `json:"duration"`
+	Speed    string `json:"speed"`
+	Errors   int    `json:"errors"`
+}
+
+// Container stats response types.
+type containerStatsData struct {
+	Docker containerStatsDockerPayload `json:"docker"`
+}
+
+type containerStatsDockerPayload struct {
+	Containers []containerStatsPayload `json:"containers"`
+}
+
+type containerStatsPayload struct {
+	ID         string  `json:"id"`
+	Names      []string `json:"names"`
+	State      string  `json:"state"`
+	CPUPercent float64 `json:"cpuPercent"`
+	MemUsage   uint64  `json:"memUsage"`
+	MemPercent float64 `json:"memPercent"`
 }
 
 // Share response types.

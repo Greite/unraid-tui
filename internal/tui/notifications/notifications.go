@@ -59,7 +59,17 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 					m.offset = m.cursor - visible + 1
 				}
 			}
+		case "a":
+			return m, m.archiveSelected()
+		case "A":
+			return m, m.archiveAll()
 		}
+
+	case notifActionMsg:
+		if msg.Err == nil {
+			return m, m.fetchNotifications
+		}
+		m.err = msg.Err
 
 	case common.NotificationsListMsg:
 		m.loading = false
@@ -132,7 +142,7 @@ func (m Model) View() string {
 		}
 	}
 
-	s.WriteString("\n" + common.StyleSubtle.Render("  ↑/↓: naviguer  │  r: rafraîchir") + "\n")
+	s.WriteString("\n" + common.StyleSubtle.Render("  ↑/↓: naviguer  │  a: archiver  │  A: archiver tout  │  r: rafraîchir") + "\n")
 	return s.String()
 }
 
@@ -163,6 +173,24 @@ func (m Model) visibleRows() int {
 		v = 5
 	}
 	return v
+}
+
+type notifActionMsg struct{ Err error }
+
+func (m Model) archiveSelected() tea.Cmd {
+	if m.cursor >= len(m.notifications) { return nil }
+	n := m.notifications[m.cursor]
+	id, client := n.ID, m.client
+	return func() tea.Msg {
+		return notifActionMsg{client.ArchiveNotification(context.Background(), id)}
+	}
+}
+
+func (m Model) archiveAll() tea.Cmd {
+	client := m.client
+	return func() tea.Msg {
+		return notifActionMsg{client.ArchiveAllNotifications(context.Background())}
+	}
 }
 
 func (m Model) fetchNotifications() tea.Msg {

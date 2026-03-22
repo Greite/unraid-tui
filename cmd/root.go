@@ -14,9 +14,10 @@ import (
 
 // Set by GoReleaser via ldflags.
 var (
-	version = "dev"
-	commit  = "none"
-	date    = "unknown"
+	version    = "dev"
+	commit     = "none"
+	date       = "unknown"
+	serverFlag string
 )
 
 var rootCmd = &cobra.Command{
@@ -30,7 +31,7 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
-		cfg, err := config.Load()
+		cfg, err := config.LoadServer(serverFlag)
 		if err != nil {
 			return fmt.Errorf("configuration error: %w", err)
 		}
@@ -52,8 +53,49 @@ var versionCmd = &cobra.Command{
 	},
 }
 
+var serversCmd = &cobra.Command{
+	Use:   "servers",
+	Short: "List configured servers",
+	Run: func(cmd *cobra.Command, args []string) {
+		servers := config.ListServers()
+		def := config.DefaultServer()
+		if len(servers) == 0 {
+			fmt.Println("No servers configured. Run unraid-tui to set up.")
+			return
+		}
+		for _, s := range servers {
+			marker := "  "
+			if s.Name == def {
+				marker = "* "
+			}
+			fmt.Printf("%s%-15s %s\n", marker, s.Name, s.ServerURL)
+		}
+	},
+}
+
+var addServerCmd = &cobra.Command{
+	Use:   "add-server",
+	Short: "Add a new server configuration",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		m := onboarding.New()
+		p := tea.NewProgram(m)
+		result, err := p.Run()
+		if err != nil {
+			return err
+		}
+		final := result.(onboarding.Model)
+		if final.Quitting() || !final.Completed() {
+			return fmt.Errorf("cancelled")
+		}
+		return nil
+	},
+}
+
 func init() {
+	rootCmd.PersistentFlags().StringVar(&serverFlag, "server", "", "server name to connect to")
 	rootCmd.AddCommand(versionCmd)
+	rootCmd.AddCommand(serversCmd)
+	rootCmd.AddCommand(addServerCmd)
 }
 
 func runOnboarding() error {

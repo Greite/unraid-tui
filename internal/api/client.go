@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/Greite/unraid-tui/internal/model"
@@ -21,6 +22,7 @@ var (
 type UnraidClient interface {
 	GetSystemInfo(ctx context.Context) (*model.SystemInfo, error)
 	GetSystemMetrics(ctx context.Context) (*model.SystemMetrics, error)
+	GetSystemInfoExtra(ctx context.Context, info *model.SystemInfo) error
 	GetVMs(ctx context.Context) ([]model.VM, error)
 	GetNotifications(ctx context.Context) ([]model.Notification, error)
 	GetContainers(ctx context.Context) ([]model.Container, error)
@@ -35,6 +37,19 @@ type UnraidClient interface {
 	GetArrayInfo(ctx context.Context) (*model.ArrayInfo, error)
 	GetNotificationsOverview(ctx context.Context) (*model.NotificationOverview, error)
 	GetNetwork(ctx context.Context) ([]model.NetworkAccess, error)
+	GetContainerStats(ctx context.Context) (map[string]model.Container, error)
+	GetParityHistory(ctx context.Context) ([]model.ParityHistoryEntry, error)
+	SetAutostart(ctx context.Context, id string, autoStart bool, wait int) error
+	// VM mutations
+	StartVM(ctx context.Context, id string) error
+	StopVM(ctx context.Context, id string) error
+	PauseVM(ctx context.Context, id string) error
+	ResumeVM(ctx context.Context, id string) error
+	ForceStopVM(ctx context.Context, id string) error
+	RebootVM(ctx context.Context, id string) error
+	// Notification mutations
+	ArchiveNotification(ctx context.Context, id string) error
+	ArchiveAllNotifications(ctx context.Context) error
 	ServerURL() string
 }
 
@@ -64,6 +79,18 @@ func (c *httpClient) GetSystemInfo(ctx context.Context) (*model.SystemInfo, erro
 		return nil, fmt.Errorf("graphql: %s", result.Errors[0].Message)
 	}
 	return result.Data.Info.toDomain(), nil
+}
+
+func (c *httpClient) GetSystemInfoExtra(ctx context.Context, info *model.SystemInfo) error {
+	var result graphqlResponse[systemInfoExtraData]
+	if err := c.doQuery(ctx, querySystemInfoExtra, &result); err != nil {
+		return err
+	}
+	if len(result.Errors) > 0 {
+		return nil // silently ignore — extra fields may not be available
+	}
+	result.Data.Info.applyTo(info)
+	return nil
 }
 
 func (c *httpClient) GetSystemMetrics(ctx context.Context) (*model.SystemMetrics, error) {
@@ -242,6 +269,77 @@ func (c *httpClient) GetDisks(ctx context.Context) ([]model.Disk, error) {
 		return nil, fmt.Errorf("graphql: %s", result.Errors[0].Message)
 	}
 	return allDisksToDomain(result.Data.Array), nil
+}
+
+func (c *httpClient) GetContainerStats(ctx context.Context) (map[string]model.Container, error) {
+	var result graphqlResponse[containerStatsData]
+	if err := c.doQuery(ctx, queryContainerStats, &result); err != nil {
+		return nil, err
+	}
+	if len(result.Errors) > 0 {
+		return nil, fmt.Errorf("graphql: %s", result.Errors[0].Message)
+	}
+	stats := make(map[string]model.Container)
+	for _, s := range result.Data.Docker.Containers {
+		name := ""
+		if len(s.Names) > 0 {
+			name = strings.TrimPrefix(s.Names[0], "/")
+		}
+		stats[s.ID] = model.Container{
+			ID: s.ID, Name: name,
+			CPUPercent: s.CPUPercent, MemUsage: s.MemUsage, MemPercent: s.MemPercent,
+		}
+	}
+	return stats, nil
+}
+
+func (c *httpClient) GetParityHistory(ctx context.Context) ([]model.ParityHistoryEntry, error) {
+	var result graphqlResponse[parityHistoryData]
+	if err := c.doQuery(ctx, queryParityHistory, &result); err != nil {
+		return nil, err
+	}
+	if len(result.Errors) > 0 {
+		return nil, fmt.Errorf("graphql: %s", result.Errors[0].Message)
+	}
+	entries := make([]model.ParityHistoryEntry, len(result.Data.Array.ParityHistory))
+	for i, p := range result.Data.Array.ParityHistory {
+		entries[i] = model.ParityHistoryEntry{
+			Date: p.Date, Status: p.Status, Duration: p.Duration,
+			Speed: p.Speed, Errors: p.Errors,
+		}
+	}
+	return entries, nil
+}
+
+func (c *httpClient) SetAutostart(ctx context.Context, id string, autoStart bool, wait int) error {
+	query := fmt.Sprintf(mutationAutostart, id, autoStart, wait)
+	return c.doContainerAction(ctx, query, "")
+}
+
+func (c *httpClient) StartVM(ctx context.Context, id string) error {
+	return c.doContainerAction(ctx, mutationVMStart, id)
+}
+func (c *httpClient) StopVM(ctx context.Context, id string) error {
+	return c.doContainerAction(ctx, mutationVMStop, id)
+}
+func (c *httpClient) PauseVM(ctx context.Context, id string) error {
+	return c.doContainerAction(ctx, mutationVMPause, id)
+}
+func (c *httpClient) ResumeVM(ctx context.Context, id string) error {
+	return c.doContainerAction(ctx, mutationVMResume, id)
+}
+func (c *httpClient) ForceStopVM(ctx context.Context, id string) error {
+	return c.doContainerAction(ctx, mutationVMForceStop, id)
+}
+func (c *httpClient) RebootVM(ctx context.Context, id string) error {
+	return c.doContainerAction(ctx, mutationVMReboot, id)
+}
+
+func (c *httpClient) ArchiveNotification(ctx context.Context, id string) error {
+	return c.doContainerAction(ctx, mutationArchiveNotification, id)
+}
+func (c *httpClient) ArchiveAllNotifications(ctx context.Context) error {
+	return c.doContainerAction(ctx, mutationArchiveAllNotifications, "")
 }
 
 func (c *httpClient) ServerURL() string {

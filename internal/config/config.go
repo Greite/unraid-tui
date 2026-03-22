@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/zalando/go-keyring"
+	"go.yaml.in/yaml/v3"
 )
 
 const (
@@ -14,12 +15,21 @@ const (
 	configFileName = "config"
 	configFileType = "yaml"
 	keyringService = "unraid-tui"
-	keyringUser    = "api-key"
 )
 
 type Config struct {
 	ServerURL string `mapstructure:"server_url"`
 	APIKey    string `mapstructure:"api_key"`
+}
+
+type MultiConfig struct {
+	Default string         `yaml:"default"`
+	Servers []ServerEntry  `yaml:"servers"`
+}
+
+type ServerEntry struct {
+	Name      string `yaml:"name"`
+	ServerURL string `yaml:"server_url"`
 }
 
 // ConfigDir returns the path to ~/.unraid-tui/
@@ -33,8 +43,31 @@ func FilePath() string {
 	return filepath.Join(ConfigDir(), configFileName+"."+configFileType)
 }
 
-// Exists returns true if config is complete (server_url + api_key available).
+func keyringUser(serverName string) string {
+	if serverName == "" {
+		return "api-key"
+	}
+	return "api-key/" + serverName
+}
+
+// Exists returns true if config is complete.
 func Exists() bool {
+	cfg, err := loadMultiConfig()
+	if err != nil || len(cfg.Servers) == 0 {
+		// Try legacy single-server
+		return existsLegacy()
+	}
+	s := cfg.getDefault()
+	if s == nil || s.ServerURL == "" {
+		return false
+	}
+	if key, err := keyring.Get(keyringService, keyringUser(s.Name)); err == nil && key != "" {
+		return true
+	}
+	return false
+}
+
+func existsLegacy() bool {
 	v := viper.New()
 	v.SetConfigName(configFileName)
 	v.SetConfigType(configFileType)
@@ -42,10 +75,8 @@ func Exists() bool {
 	v.SetEnvPrefix("UNRAID")
 	v.BindEnv("server_url")
 	v.BindEnv("api_key")
-
 	_ = v.ReadInConfig()
 
-	// Also check old location for migration
 	if v.GetString("server_url") == "" {
 		home, _ := os.UserHomeDir()
 		v.AddConfigPath(home)
@@ -56,60 +87,172 @@ func Exists() bool {
 	if v.GetString("server_url") == "" {
 		return false
 	}
-
 	if v.GetString("api_key") != "" {
 		return true
 	}
-	if key, err := keyring.Get(keyringService, keyringUser); err == nil && key != "" {
+	if key, err := keyring.Get(keyringService, keyringUser("")); err == nil && key != "" {
 		return true
 	}
 	return false
 }
 
-// Save stores server_url in config.yaml and api_key in system keychain.
+// Save stores a server config.
 func Save(cfg *Config) error {
-	// Ensure config directory exists
+	return SaveServer("default", cfg)
+}
+
+// SaveServer stores a named server config.
+func SaveServer(name string, cfg *Config) error {
 	dir := ConfigDir()
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return fmt.Errorf("creating config directory: %w", err)
 	}
 
-	path := FilePath()
-	content := fmt.Sprintf("server_url: %q\n", cfg.ServerURL)
-	if err := os.WriteFile(path, []byte(content), 0600); err != nil {
-		return fmt.Errorf("writing config file: %w", err)
+	// Load or create multi config
+	mc, _ := loadMultiConfig()
+	if mc == nil {
+		mc = &MultiConfig{}
 	}
 
-	// Save api_key to system keychain
-	if err := keyring.Set(keyringService, keyringUser, cfg.APIKey); err != nil {
-		// Fallback: save in file if keychain is unavailable
-		content = fmt.Sprintf("server_url: %q\napi_key: %q\n", cfg.ServerURL, cfg.APIKey)
-		if err2 := os.WriteFile(path, []byte(content), 0600); err2 != nil {
-			return fmt.Errorf("writing config file: %w", err2)
+	// Update or add server
+	found := false
+	for i, s := range mc.Servers {
+		if s.Name == name {
+			mc.Servers[i].ServerURL = cfg.ServerURL
+			found = true
+			break
 		}
 	}
+	if !found {
+		mc.Servers = append(mc.Servers, ServerEntry{Name: name, ServerURL: cfg.ServerURL})
+	}
+	if mc.Default == "" || len(mc.Servers) == 1 {
+		mc.Default = name
+	}
 
-	// Clean up old config location
+	// Write config file
+	data, err := yaml.Marshal(mc)
+	if err != nil {
+		return fmt.Errorf("marshaling config: %w", err)
+	}
+	if err := os.WriteFile(FilePath(), data, 0600); err != nil {
+		return fmt.Errorf("writing config: %w", err)
+	}
+
+	// Save API key to keychain
+	if err := keyring.Set(keyringService, keyringUser(name), cfg.APIKey); err != nil {
+		// Fallback: save in legacy format
+		content := fmt.Sprintf("server_url: %q\napi_key: %q\n", cfg.ServerURL, cfg.APIKey)
+		os.WriteFile(FilePath(), []byte(content), 0600)
+	}
+
 	removeOldConfig()
-
 	return nil
 }
 
-// Load reads config from file + keychain + env vars.
+// Load reads config for the default server.
 func Load() (*Config, error) {
+	return LoadServer("")
+}
+
+// LoadServer reads config for a named server ("" = default).
+func LoadServer(name string) (*Config, error) {
+	// Try multi-server config
+	mc, err := loadMultiConfig()
+	if err == nil && len(mc.Servers) > 0 {
+		var s *ServerEntry
+		if name == "" {
+			s = mc.getDefault()
+		} else {
+			s = mc.getServer(name)
+		}
+		if s != nil && s.ServerURL != "" {
+			apiKey, _ := keyring.Get(keyringService, keyringUser(s.Name))
+			if apiKey != "" {
+				return &Config{ServerURL: s.ServerURL, APIKey: apiKey}, nil
+			}
+		}
+	}
+
+	// Fallback to legacy
+	return loadLegacy()
+}
+
+// ListServers returns all configured servers.
+func ListServers() []ServerEntry {
+	mc, err := loadMultiConfig()
+	if err != nil || len(mc.Servers) == 0 {
+		// Try legacy
+		cfg, err := loadLegacy()
+		if err != nil {
+			return nil
+		}
+		return []ServerEntry{{Name: "default", ServerURL: cfg.ServerURL}}
+	}
+	return mc.Servers
+}
+
+// DefaultServer returns the name of the default server.
+func DefaultServer() string {
+	mc, _ := loadMultiConfig()
+	if mc != nil && mc.Default != "" {
+		return mc.Default
+	}
+	return "default"
+}
+
+// SetDefault sets the default server.
+func SetDefault(name string) error {
+	mc, err := loadMultiConfig()
+	if err != nil {
+		return err
+	}
+	mc.Default = name
+	data, _ := yaml.Marshal(mc)
+	return os.WriteFile(FilePath(), data, 0600)
+}
+
+func loadMultiConfig() (*MultiConfig, error) {
+	data, err := os.ReadFile(FilePath())
+	if err != nil {
+		return nil, err
+	}
+	var mc MultiConfig
+	if err := yaml.Unmarshal(data, &mc); err != nil {
+		return nil, err
+	}
+	return &mc, nil
+}
+
+func (mc *MultiConfig) getDefault() *ServerEntry {
+	return mc.getServer(mc.Default)
+}
+
+func (mc *MultiConfig) getServer(name string) *ServerEntry {
+	for i, s := range mc.Servers {
+		if s.Name == name {
+			return &mc.Servers[i]
+		}
+	}
+	if len(mc.Servers) > 0 {
+		return &mc.Servers[0]
+	}
+	return nil
+}
+
+func loadLegacy() (*Config, error) {
+	viper.Reset()
 	viper.SetConfigName(configFileName)
 	viper.SetConfigType(configFileType)
 	viper.AddConfigPath(ConfigDir())
-
 	viper.SetEnvPrefix("UNRAID")
 	viper.BindEnv("server_url")
 	viper.BindEnv("api_key")
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			// Try old location for migration
 			if migrated := migrateOldConfig(); !migrated {
-				return nil, fmt.Errorf("config not found: run unraid-tui to configure or set env vars")
+				return nil, fmt.Errorf("config not found")
 			}
 		} else {
 			return nil, fmt.Errorf("reading config: %w", err)
@@ -122,71 +265,51 @@ func Load() (*Config, error) {
 	}
 
 	if cfg.ServerURL == "" {
-		return nil, fmt.Errorf("server_url is required (set in %s or UNRAID_SERVER_URL env var)", FilePath())
+		return nil, fmt.Errorf("server_url is required")
 	}
 
-	// API key priority: env var > keychain > yaml file
 	if cfg.APIKey == "" {
-		if key, err := keyring.Get(keyringService, keyringUser); err == nil && key != "" {
+		if key, err := keyring.Get(keyringService, keyringUser("")); err == nil && key != "" {
 			cfg.APIKey = key
 		}
 	}
 
 	if cfg.APIKey == "" {
-		return nil, fmt.Errorf("api_key is required (set UNRAID_API_KEY env var or run unraid-tui to configure)")
-	}
-
-	// Migrate api_key from file to keychain if present
-	if viper.GetString("api_key") != "" {
-		if err := keyring.Set(keyringService, keyringUser, cfg.APIKey); err == nil {
-			// Rewrite file without api_key
-			content := fmt.Sprintf("server_url: %q\n", cfg.ServerURL)
-			os.WriteFile(FilePath(), []byte(content), 0600)
-		}
+		return nil, fmt.Errorf("api_key is required")
 	}
 
 	return &cfg, nil
 }
 
-// migrateOldConfig moves ~/.unraid-tui.yaml to ~/.unraid-tui/config.yaml
 func migrateOldConfig() bool {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return false
 	}
-
 	oldPath := filepath.Join(home, ".unraid-tui.yaml")
 	data, err := os.ReadFile(oldPath)
 	if err != nil {
 		return false
 	}
-
-	// Create new config dir and write
 	dir := ConfigDir()
 	os.MkdirAll(dir, 0700)
 	if err := os.WriteFile(FilePath(), data, 0600); err != nil {
 		return false
 	}
-
-	// Re-read from new location
 	viper.SetConfigName(configFileName)
 	viper.SetConfigType(configFileType)
 	viper.AddConfigPath(dir)
 	if err := viper.ReadInConfig(); err != nil {
 		return false
 	}
-
-	// Remove old file
 	os.Remove(oldPath)
 	return true
 }
 
-// removeOldConfig deletes ~/.unraid-tui.yaml if it exists.
 func removeOldConfig() {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return
 	}
-	oldPath := filepath.Join(home, ".unraid-tui.yaml")
-	os.Remove(oldPath)
+	os.Remove(filepath.Join(home, ".unraid-tui.yaml"))
 }

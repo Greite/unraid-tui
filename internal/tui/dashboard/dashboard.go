@@ -135,7 +135,13 @@ func (m Model) View() string {
 
 	row2 := lipgloss.JoinHorizontal(lipgloss.Top, cpuCoresPanel, " ", diskPanel)
 
-	result := errLine + "\n" + row1 + "\n\n" + row2 + "\n"
+	hwPanel := m.renderHardwarePanel()
+
+	result := errLine + "\n" + row1 + "\n\n" + row2
+	if hwPanel != "" {
+		result += "\n\n" + hwPanel
+	}
+	result += "\n"
 
 	// Apply scroll
 	lines := strings.Split(result, "\n")
@@ -178,6 +184,9 @@ func (m Model) renderSystemCard() string {
 		}
 		if info.OS.Uptime > 0 {
 			content += fmt.Sprintf("  Uptime: %s\n", formatUptime(info.OS.Uptime))
+		}
+		if info.Versions.Unraid != "" {
+			content += fmt.Sprintf("  Unraid: %s\n", info.Versions.Unraid)
 		}
 	} else {
 		content = "  En attente...\n"
@@ -366,6 +375,69 @@ func (m Model) renderDiskPanel() string {
 	)
 }
 
+func (m Model) renderHardwarePanel() string {
+	if m.systemInfo == nil {
+		return ""
+	}
+	hw := m.systemInfo.Hardware
+	if len(hw.RAM) == 0 && len(hw.GPUs) == 0 && len(hw.USBs) == 0 {
+		return ""
+	}
+
+	w := m.halfWidth()*2 + 1
+	var content string
+
+	// RAM
+	if len(hw.RAM) > 0 {
+		var totalRAM uint64
+		for _, r := range hw.RAM {
+			totalRAM += r.Size
+		}
+		first := hw.RAM[0]
+		ramType := first.Type
+		if ramType == "" {
+			ramType = "DDR"
+		}
+		speed := ""
+		if first.ClockSpeed > 0 {
+			speed = fmt.Sprintf(" %dMHz", first.ClockSpeed)
+		}
+		content += fmt.Sprintf("  RAM    %dx %s %s%s  (%s total)\n",
+			len(hw.RAM), common.FormatBytes(first.Size), ramType, speed,
+			common.FormatBytes(totalRAM))
+	}
+
+	// GPU
+	for _, g := range hw.GPUs {
+		name := g.Name
+		if name == "" {
+			name = g.Model
+		}
+		if name == "" {
+			continue
+		}
+		content += fmt.Sprintf("  GPU    %s\n", name)
+	}
+
+	// USB summary
+	if len(hw.USBs) > 0 {
+		content += fmt.Sprintf("  USB    %d devices\n", len(hw.USBs))
+	}
+
+	// PCI summary
+	if len(hw.PCIs) > 0 {
+		content += fmt.Sprintf("  PCI    %d devices\n", len(hw.PCIs))
+	}
+
+	if content == "" {
+		return ""
+	}
+
+	return common.StylePanel.Width(w).Render(
+		common.StyleTitle.Render("Hardware") + "\n" + content,
+	)
+}
+
 func truncate(s string, max int) string {
 	if len(s) <= max {
 		return s
@@ -391,6 +463,10 @@ func (m Model) halfWidth() int {
 
 func (m Model) fetchSystemInfo() tea.Msg {
 	info, err := m.client.GetSystemInfo(context.Background())
+	if err == nil && info != nil {
+		// Best-effort fetch of extra info (versions, hardware)
+		m.client.GetSystemInfoExtra(context.Background(), info)
+	}
 	return common.SystemInfoMsg{Info: info, Err: err}
 }
 

@@ -23,6 +23,32 @@ const querySystemInfo = `query {
 	}
 }`
 
+const querySystemInfoExtra = `query {
+	info {
+		versions {
+			core {
+				unraid
+				api
+				kernel
+			}
+		}
+		devices {
+			gpu { id name vendor model }
+			pci { id name vendor model }
+			usb { id name vendor model }
+		}
+		memory {
+			layout {
+				size
+				type
+				clockSpeed
+				manufacturer
+				bank
+			}
+		}
+	}
+}`
+
 const querySystemMetrics = `query {
 	metrics {
 		cpu {
@@ -120,24 +146,19 @@ const queryDisks = `query {
 	}
 }`
 
-// Container mutation templates — %s is replaced with the container ID.
-const mutationStartContainer = `mutation { docker { start(id: "%s") { id state } } }`
-const mutationStopContainer = `mutation { docker { stop(id: "%s") { id state } } }`
-const mutationPauseContainer = `mutation { docker { pause(id: "%s") { id state } } }`
-const mutationUnpauseContainer = `mutation { docker { unpause(id: "%s") { id state } } }`
-const mutationUpdateContainer = `mutation { docker { updateContainer(id: "%s") { id names image } } }`
-const mutationUpdateAllContainers = `mutation { docker { updateAllContainers { id names } } }`
-
-const queryVMs = `query {
-	vms {
-		domains {
-			id
-			name
-			state
+const queryParityHistory = `query {
+	array {
+		parityHistory {
+			date
+			status
+			duration
+			speed
+			errors
 		}
 	}
 }`
 
+// Docker queries
 const queryContainers = `query {
 	docker {
 		containers {
@@ -157,3 +178,48 @@ const queryContainers = `query {
 		}
 	}
 }`
+
+const queryContainerStats = `query {
+	docker {
+		containers {
+			id
+			names
+			state
+			cpuPercent
+			memUsage
+			memPercent
+		}
+	}
+}`
+
+// Docker mutations — %s is replaced with the container ID.
+const mutationStartContainer = `mutation { docker { start(id: "%s") { id state } } }`
+const mutationStopContainer = `mutation { docker { stop(id: "%s") { id state } } }`
+const mutationPauseContainer = `mutation { docker { pause(id: "%s") { id state } } }`
+const mutationUnpauseContainer = `mutation { docker { unpause(id: "%s") { id state } } }`
+const mutationUpdateContainer = `mutation { docker { updateContainer(id: "%s") { id names image } } }`
+const mutationUpdateAllContainers = `mutation { docker { updateAllContainers { id names } } }`
+const mutationAutostart = `mutation { docker { updateAutostartConfiguration(entries: [{ id: "%s", autoStart: %t, wait: %d }]) } }`
+
+// VM queries
+const queryVMs = `query {
+	vms {
+		domains {
+			id
+			name
+			state
+		}
+	}
+}`
+
+// VM mutations
+const mutationVMStart = `mutation { vm { start(id: "%s") } }`
+const mutationVMStop = `mutation { vm { stop(id: "%s") } }`
+const mutationVMPause = `mutation { vm { pause(id: "%s") } }`
+const mutationVMResume = `mutation { vm { resume(id: "%s") } }`
+const mutationVMForceStop = `mutation { vm { forceStop(id: "%s") } }`
+const mutationVMReboot = `mutation { vm { reboot(id: "%s") } }`
+
+// Notification mutations
+const mutationArchiveNotification = `mutation { notifications { archive(id: "%s") } }`
+const mutationArchiveAllNotifications = `mutation { notifications { archiveAll } }`

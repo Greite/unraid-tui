@@ -2,33 +2,50 @@ package tui
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/Greite/unraid-tui/internal/api"
+	"github.com/Greite/unraid-tui/internal/config"
 	"github.com/Greite/unraid-tui/internal/model"
 	"github.com/Greite/unraid-tui/internal/tui/common"
 	"github.com/Greite/unraid-tui/internal/tui/dashboard"
 	"github.com/Greite/unraid-tui/internal/tui/docker"
 	"github.com/Greite/unraid-tui/internal/tui/notifications"
+	"github.com/Greite/unraid-tui/internal/tui/onboarding"
 	"github.com/Greite/unraid-tui/internal/tui/shares"
 	"github.com/Greite/unraid-tui/internal/tui/vms"
 )
 
 type notifTickMsg struct{}
 
+// serverSwitchedMsg is sent after switching to a new server.
+type serverSwitchedMsg struct {
+	client api.UnraidClient
+	err    error
+}
+
 type Model struct {
-	activePage    common.Page
-	dashboard     dashboard.Model
-	docker        docker.Model
-	vms           vms.Model
-	notifications notifications.Model
-	shares        shares.Model
-	client        api.UnraidClient
-	notifOverview *model.NotificationOverview
-	width         int
-	height        int
+	activePage      common.Page
+	dashboard       dashboard.Model
+	docker          docker.Model
+	vms             vms.Model
+	notifications   notifications.Model
+	shares          shares.Model
+	client          api.UnraidClient
+	notifOverview   *model.NotificationOverview
+	width           int
+	height          int
+	// Server selector
+	showServerPicker bool
+	serverList       []config.ServerEntry
+	serverCursor     int
+	// Inline onboarding
+	onboarding    *onboarding.Model
+	showOnboarding bool
 }
 
 func NewModel(client api.UnraidClient) Model {
@@ -51,7 +68,53 @@ func (m Model) Init() tea.Cmd {
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// Inline onboarding mode
+	if m.showOnboarding && m.onboarding != nil {
+		updated, cmd := m.onboarding.Update(msg)
+		ob := updated.(onboarding.Model)
+		m.onboarding = &ob
+		if ob.Completed() {
+			m.showOnboarding = false
+			m.onboarding = nil
+			// Reload server list and switch to new server
+			servers := config.ListServers()
+			if len(servers) > 0 {
+				last := servers[len(servers)-1]
+				return m, m.switchToServer(last.Name)
+			}
+		}
+		if ob.Quitting() {
+			m.showOnboarding = false
+			m.onboarding = nil
+		}
+		return m, cmd
+	}
+
+	// Server picker mode
+	if m.showServerPicker {
+		return m.updateServerPicker(msg)
+	}
+
 	switch msg := msg.(type) {
+	case serverSwitchedMsg:
+		if msg.err != nil {
+			return m, nil
+		}
+		m.client = msg.client
+		m.dashboard = dashboard.New(msg.client)
+		m.docker = docker.New(msg.client)
+		m.vms = vms.New(msg.client)
+		m.notifications = notifications.New(msg.client)
+		m.shares = shares.New(msg.client)
+		contentHeight := m.height - 4
+		m.dashboard.SetSize(m.width, contentHeight)
+		m.docker.SetSize(m.width, contentHeight)
+		m.vms.SetSize(m.width, contentHeight)
+		m.notifications.SetSize(m.width, contentHeight)
+		m.shares.SetSize(m.width, contentHeight)
+		m.activePage = common.PageDashboard
+		return m, tea.Batch(m.dashboard.Init(), m.fetchNotifOverview)
+
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
@@ -66,6 +129,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case msg.Code == 'c' && msg.Mod&tea.ModCtrl != 0:
 			return m, tea.Quit
+		case msg.Code == 's' && msg.Mod&tea.ModCtrl != 0:
+			m.serverList = config.ListServers()
+			m.serverCursor = 0
+			m.showServerPicker = true
+			return m, nil
 		case msg.Code == 'q' && !(m.activePage == common.PageDocker && m.docker.InSubView()):
 			return m, tea.Quit
 		case msg.Code == tea.KeyTab && msg.Mod&tea.ModShift != 0:
@@ -161,7 +229,14 @@ func (m Model) View() tea.View {
 	header := RenderHeader(m.activePage, m.width, m.notifOverview)
 
 	var content string
-	switch m.activePage {
+
+	if m.showOnboarding && m.onboarding != nil {
+		obView := m.onboarding.View()
+		content = obView.Content
+	} else if m.showServerPicker {
+		content = m.renderServerPicker()
+	} else {
+		switch m.activePage {
 	case common.PageDashboard:
 		content = m.dashboard.View()
 	case common.PageDocker:
@@ -172,6 +247,7 @@ func (m Model) View() tea.View {
 		content = m.notifications.View()
 	case common.PageShares:
 		content = m.shares.View()
+		}
 	}
 
 	footer := RenderFooter(m.width)
@@ -199,6 +275,88 @@ func (m Model) scheduleNotifRefresh() tea.Cmd {
 	return tea.Tick(30*time.Second, func(_ time.Time) tea.Msg {
 		return notifTickMsg{}
 	})
+}
+
+func (m Model) updateServerPicker(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyPressMsg:
+		switch msg.String() {
+		case "esc", "ctrl+s":
+			m.showServerPicker = false
+			return m, nil
+		case "up", "k":
+			if m.serverCursor > 0 {
+				m.serverCursor--
+			}
+		case "down", "j":
+			if m.serverCursor < len(m.serverList) {
+				m.serverCursor++
+			}
+		case "enter":
+			if m.serverCursor < len(m.serverList) {
+				s := m.serverList[m.serverCursor]
+				m.showServerPicker = false
+				return m, m.switchToServer(s.Name)
+			}
+			// "Add new" option (last item)
+			if m.serverCursor == len(m.serverList) {
+				m.showServerPicker = false
+				ob := onboarding.New()
+				m.onboarding = &ob
+				m.showOnboarding = true
+				return m, m.onboarding.Init()
+			}
+		}
+	}
+	return m, nil
+}
+
+func (m Model) switchToServer(name string) tea.Cmd {
+	return func() tea.Msg {
+		cfg, err := config.LoadServer(name)
+		if err != nil {
+			return serverSwitchedMsg{err: err}
+		}
+		client := api.NewClient(cfg.ServerURL, cfg.APIKey)
+		return serverSwitchedMsg{client: client}
+	}
+}
+
+func (m Model) renderServerPicker() string {
+	var s strings.Builder
+	s.WriteString("\n")
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(common.ColorPrimary)
+	s.WriteString(titleStyle.Render("  Serveurs") + "\n\n")
+
+	def := config.DefaultServer()
+	selectedStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FFFFFF")).
+		Background(lipgloss.Color("#CC6A1E"))
+
+	for i, srv := range m.serverList {
+		marker := "  "
+		if srv.Name == def {
+			marker = "* "
+		}
+		row := fmt.Sprintf("  %s%-15s  %s", marker, srv.Name, srv.ServerURL)
+		if i == m.serverCursor {
+			s.WriteString(selectedStyle.Render(row) + "\n")
+		} else {
+			s.WriteString(row + "\n")
+		}
+	}
+
+	// Add new option
+	addRow := "  + Ajouter un serveur..."
+	if m.serverCursor == len(m.serverList) {
+		s.WriteString(selectedStyle.Render(addRow) + "\n")
+	} else {
+		s.WriteString(common.StyleSubtle.Render(addRow) + "\n")
+	}
+
+	s.WriteString("\n" + common.StyleSubtle.Render("  enter: selectionner  │  esc: fermer  │  * = defaut") + "\n")
+	return s.String()
 }
 
 // ActivePage returns the current page (for testing).

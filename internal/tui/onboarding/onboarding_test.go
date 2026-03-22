@@ -20,12 +20,12 @@ func TestNew_InitialState(t *testing.T) {
 	}
 }
 
-func TestWelcome_EnterGoesToServerURL(t *testing.T) {
+func TestWelcome_EnterGoesToServerName(t *testing.T) {
 	m := New()
 	updated, _ := m.Update(tea.KeyPressMsg(tea.Key{Code: tea.KeyEnter}))
 	model := updated.(Model)
-	if model.step != stepServerURL {
-		t.Errorf("expected stepServerURL, got %d", model.step)
+	if model.step != stepServerName {
+		t.Errorf("expected stepServerName, got %d", model.step)
 	}
 }
 
@@ -207,13 +207,13 @@ func TestEsc_QuitsOnWelcome(t *testing.T) {
 	}
 }
 
-func TestEsc_QuitsOnServerURL(t *testing.T) {
+func TestEsc_QuitsOnServerName(t *testing.T) {
 	m := New()
-	m.step = stepServerURL
+	m.step = stepServerName
 	updated, cmd := m.Update(tea.KeyPressMsg(tea.Key{Code: tea.KeyEscape}))
 	model := updated.(Model)
 	if !model.quitting {
-		t.Error("expected quitting on esc at serverURL")
+		t.Error("expected quitting on esc at serverName")
 	}
 	if cmd == nil {
 		t.Error("expected quit command")
@@ -285,8 +285,8 @@ func TestView_ServerURLStep(t *testing.T) {
 	m.width = 80
 	m.height = 30
 	v := m.View()
-	if !strings.Contains(v.Content, "Etape 1/3") {
-		t.Error("expected 'Etape 1/3' in server URL view")
+	if !strings.Contains(v.Content, "Etape 2/4") {
+		t.Error("expected 'Etape 2/4' in server URL view")
 	}
 	if !strings.Contains(v.Content, "3001") {
 		t.Error("expected port hint in server URL view")

@@ -19,6 +19,7 @@ type step int
 
 const (
 	stepWelcome step = iota
+	stepServerName
 	stepServerURL
 	stepTestConnection
 	stepAPIKeyInfo
@@ -47,6 +48,7 @@ type saveResultMsg struct {
 
 type Model struct {
 	step       step
+	serverName textinput.Model
 	serverURL  textinput.Model
 	apiKey     textinput.Model
 	spinner    spinner.Model
@@ -59,8 +61,13 @@ type Model struct {
 }
 
 func New() Model {
+	nameInput := textinput.New()
+	nameInput.Placeholder = "NAS"
+	nameInput.Prompt = "  > "
+	nameInput.CharLimit = 64
+
 	serverInput := textinput.New()
-	serverInput.Placeholder = "http://192.168.1.100:3001"
+	serverInput.Placeholder = "http://192.168.1.100"
 	serverInput.Prompt = "  > "
 	serverInput.CharLimit = 256
 
@@ -76,10 +83,11 @@ func New() Model {
 	s.Style = lipgloss.NewStyle().Foreground(common.ColorPrimary)
 
 	return Model{
-		step:      stepWelcome,
-		serverURL: serverInput,
-		apiKey:    apiKeyInput,
-		spinner:   s,
+		step:       stepWelcome,
+		serverName: nameInput,
+		serverURL:  serverInput,
+		apiKey:     apiKeyInput,
+		spinner:    s,
 	}
 }
 
@@ -100,7 +108,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.quitting = true
 			return m, tea.Quit
 		case "esc":
-			if m.step == stepWelcome || m.step == stepServerURL {
+			if m.step == stepWelcome || m.step == stepServerName {
 				m.quitting = true
 				return m, tea.Quit
 			}
@@ -159,6 +167,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch m.step {
 		case stepWelcome:
 			if keyMsg.String() == "enter" {
+				m.step = stepServerName
+				m = m.focusCurrentInput()
+				return m, m.serverName.Focus()
+			}
+		case stepServerName:
+			if keyMsg.String() == "enter" {
+				name := strings.TrimSpace(m.serverName.Value())
+				if name == "" {
+					m.err = fmt.Errorf("le nom du serveur ne peut pas etre vide")
+					return m, nil
+				}
+				m.err = nil
 				m.step = stepServerURL
 				m = m.focusCurrentInput()
 				return m, m.serverURL.Focus()
@@ -203,6 +223,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Update active input
 	var cmd tea.Cmd
 	switch m.step {
+	case stepServerName:
+		m.serverName, cmd = m.serverName.Update(msg)
+		return m, cmd
 	case stepServerURL:
 		m.serverURL, cmd = m.serverURL.Update(msg)
 		return m, cmd
@@ -235,6 +258,8 @@ func (m Model) View() tea.View {
 	switch m.step {
 	case stepWelcome:
 		s.WriteString(m.renderWelcome())
+	case stepServerName:
+		s.WriteString(m.renderServerName())
 	case stepServerURL:
 		s.WriteString(m.renderServerURL())
 	case stepTestConnection:
@@ -282,7 +307,8 @@ func (m Model) renderProgress() string {
 		label string
 		s     step
 	}{
-		{"Serveur", stepServerURL},
+		{"Nom", stepServerName},
+		{"URL", stepServerURL},
 		{"Connexion", stepTestConnection},
 		{"Cle API", stepAPIKey},
 		{"Termine", stepDone},
@@ -324,9 +350,20 @@ func (m Model) renderWelcome() string {
 	return box.Render(content) + "\n\n" + actionHint("enter", "commencer") + "  " + escHint()
 }
 
+func (m Model) renderServerName() string {
+	var s strings.Builder
+	s.WriteString(stepTitle("Etape 1/4", "Nom du serveur"))
+	s.WriteString("\n")
+	s.WriteString("  Donnez un nom a votre serveur (ex: NAS, Backup, Media).\n")
+	s.WriteString(common.StyleSubtle.Render("  Ce nom permet d'identifier le serveur dans la liste.") + "\n\n")
+	s.WriteString(m.serverName.View() + "\n\n")
+	s.WriteString(actionHint("enter", "continuer") + "  " + escHint())
+	return s.String()
+}
+
 func (m Model) renderServerURL() string {
 	var s strings.Builder
-	s.WriteString(stepTitle("Etape 1/3", "Adresse du serveur Unraid"))
+	s.WriteString(stepTitle("Etape 2/4", "Adresse du serveur Unraid"))
 	s.WriteString("\n")
 	s.WriteString("  Entrez l'URL de votre serveur Unraid (avec le port).\n")
 	s.WriteString(common.StyleSubtle.Render("  Par defaut, l'API Unraid ecoute sur le port 3001.") + "\n\n")
@@ -341,7 +378,7 @@ func (m Model) renderTestConnection() string {
 
 func (m Model) renderAPIKeyInfo() string {
 	var s strings.Builder
-	s.WriteString(stepTitle("Etape 2/3", "Creer une cle API"))
+	s.WriteString(stepTitle("Etape 3/4", "Creer une cle API"))
 	s.WriteString("\n")
 
 	box := lipgloss.NewStyle().
@@ -374,7 +411,7 @@ func (m Model) renderAPIKeyInfo() string {
 
 func (m Model) renderAPIKey() string {
 	var s strings.Builder
-	s.WriteString(stepTitle("Etape 3/3", "Saisir la cle API"))
+	s.WriteString(stepTitle("Etape 4/4", "Saisir la cle API"))
 	s.WriteString("\n")
 	s.WriteString("  Collez votre cle API Unraid ci-dessous.\n")
 	s.WriteString(common.StyleSubtle.Render("  La cle est masquee pour des raisons de securite.") + "\n\n")
@@ -469,11 +506,15 @@ func (m Model) testAPIKey(url, key string) tea.Cmd {
 
 func (m Model) saveConfig() tea.Cmd {
 	return func() tea.Msg {
+		name := strings.TrimSpace(m.serverName.Value())
+		if name == "" {
+			name = "default"
+		}
 		cfg := &config.Config{
 			ServerURL: m.serverURL.Value(),
 			APIKey:    m.apiKey.Value(),
 		}
-		err := config.Save(cfg)
+		err := config.SaveServer(name, cfg)
 		return saveResultMsg{err: err}
 	}
 }
@@ -481,6 +522,7 @@ func (m Model) saveConfig() tea.Cmd {
 // --- Helpers ---
 
 func (m Model) focusCurrentInput() Model {
+	m.serverName.Blur()
 	m.serverURL.Blur()
 	m.apiKey.Blur()
 	return m

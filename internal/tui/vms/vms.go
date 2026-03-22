@@ -59,7 +59,23 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 					m.offset = m.cursor - visible + 1
 				}
 			}
+		case "S":
+			return m, m.toggleStartStop()
+		case "P":
+			return m, m.togglePause()
+		case "R":
+			return m, m.rebootVM()
+		case "F":
+			return m, m.forceStopVM()
 		}
+
+	case vmActionMsg:
+		if msg.Err != nil {
+			m.err = msg.Err
+		} else {
+			m.err = nil
+		}
+		return m, m.fetchVMs
 
 	case common.VMsMsg:
 		m.loading = false
@@ -140,6 +156,21 @@ func (m Model) View() string {
 		s.WriteString("  Aucune VM configuree\n")
 	}
 
+	// Actions for selected VM
+	if m.cursor < len(m.vms) {
+		v := m.vms[m.cursor]
+		var actions []string
+		lower := strings.ToLower(v.State)
+		if lower == "running" {
+			actions = append(actions, "S: stop", "P: pause", "R: reboot", "F: force stop")
+		} else if lower == "paused" {
+			actions = append(actions, "P: resume")
+		} else {
+			actions = append(actions, "S: start")
+		}
+		s.WriteString("\n  " + common.StyleSubtle.Render(strings.Join(actions, "  │  ")))
+	}
+
 	s.WriteString("\n" + common.StyleSubtle.Render("  ↑/↓: naviguer  │  r: rafraîchir") + "\n")
 	return s.String()
 }
@@ -164,6 +195,47 @@ func stateIcon(state string) string {
 	default:
 		return state
 	}
+}
+
+type vmActionMsg struct{ Err error }
+
+func (m Model) toggleStartStop() tea.Cmd {
+	if m.cursor >= len(m.vms) { return nil }
+	v := m.vms[m.cursor]
+	id, client := v.ID, m.client
+	lower := strings.ToLower(v.State)
+	if lower == "running" {
+		return func() tea.Msg { return vmActionMsg{client.StopVM(context.Background(), id)} }
+	}
+	return func() tea.Msg { return vmActionMsg{client.StartVM(context.Background(), id)} }
+}
+
+func (m Model) togglePause() tea.Cmd {
+	if m.cursor >= len(m.vms) { return nil }
+	v := m.vms[m.cursor]
+	id, client := v.ID, m.client
+	lower := strings.ToLower(v.State)
+	if lower == "paused" {
+		return func() tea.Msg { return vmActionMsg{client.ResumeVM(context.Background(), id)} }
+	}
+	if lower == "running" {
+		return func() tea.Msg { return vmActionMsg{client.PauseVM(context.Background(), id)} }
+	}
+	return nil
+}
+
+func (m Model) rebootVM() tea.Cmd {
+	if m.cursor >= len(m.vms) { return nil }
+	v := m.vms[m.cursor]
+	id, client := v.ID, m.client
+	return func() tea.Msg { return vmActionMsg{client.RebootVM(context.Background(), id)} }
+}
+
+func (m Model) forceStopVM() tea.Cmd {
+	if m.cursor >= len(m.vms) { return nil }
+	v := m.vms[m.cursor]
+	id, client := v.ID, m.client
+	return func() tea.Msg { return vmActionMsg{client.ForceStopVM(context.Background(), id)} }
 }
 
 func (m Model) fetchVMs() tea.Msg {

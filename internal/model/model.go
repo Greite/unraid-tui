@@ -1,9 +1,11 @@
 package model
 
 type SystemInfo struct {
-	CPU    CPUInfo
-	Memory MemoryInfo
-	OS     OSInfo
+	CPU      CPUInfo
+	Memory   MemoryInfo
+	OS       OSInfo
+	Versions VersionInfo
+	Hardware HardwareInfo
 }
 
 type CPUInfo struct {
@@ -50,6 +52,14 @@ type ArrayInfo struct {
 	ParityStatus   string
 	ParityProgress float64
 	ParityRunning  bool
+}
+
+type ParityHistoryEntry struct {
+	Date     string
+	Status   string
+	Duration string
+	Speed    string
+	Errors   int
 }
 
 type NotificationOverview struct {
@@ -103,18 +113,56 @@ type VM struct {
 }
 
 type Container struct {
+	ID              string
+	Name            string
+	Image           string
+	State           string // running, stopped, paused
+	Status          string // "Up 2 hours", "Exited (0) 3 days ago"
+	Ports           []Port
+	WebUI           string
+	UpdateAvailable bool
+	CPUPercent      float64
+	MemUsage        uint64
+	MemPercent      float64
+}
+
+type VersionInfo struct {
+	Unraid string
+	API    string
+	Kernel string
+}
+
+type HardwareInfo struct {
+	GPUs []DeviceInfo
+	PCIs []DeviceInfo
+	USBs []DeviceInfo
+	RAM  []RAMModule
+}
+
+type DeviceInfo struct {
 	ID     string
 	Name   string
-	Image  string
-	State  string // running, stopped, paused
-	Status string // "Up 2 hours", "Exited (0) 3 days ago"
-	Ports           []Port
-	WebUI           string // URL if available
-	UpdateAvailable bool
+	Vendor string
+	Model  string
+}
+
+type RAMModule struct {
+	Size         uint64
+	Type         string
+	ClockSpeed   int
+	Manufacturer string
+	Bank         string
 }
 
 type Port struct {
 	HostPort      int
 	ContainerPort int
 	Protocol      string // tcp, udp
+}
+
+type ServerConfig struct {
+	Name      string
+	ServerURL string
+	APIKey    string
+	Default   bool
 }
