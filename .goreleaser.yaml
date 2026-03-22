@@ -51,6 +51,7 @@ brews:
   - repository:
       owner: Greite
       name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     directory: Formula
     homepage: "https://github.com/Greite/unraid-tui"
     description: "Terminal UI for monitoring and managing Unraid servers"
