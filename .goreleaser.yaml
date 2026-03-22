@@ -47,7 +47,7 @@ changelog:
       - "^test:"
       - "^ci:"
 
-brews:
+homebrew_casks:
   - repository:
       owner: Greite
       name: homebrew-tap
