@@ -23,8 +23,9 @@ type Config struct {
 }
 
 type MultiConfig struct {
-	Default string         `yaml:"default"`
-	Servers []ServerEntry  `yaml:"servers"`
+	Default  string        `yaml:"default"`
+	Language string        `yaml:"language,omitempty"`
+	Servers  []ServerEntry `yaml:"servers"`
 }
 
 type ServerEntry struct {
@@ -148,6 +149,28 @@ func SaveServer(name string, cfg *Config) error {
 
 	removeOldConfig()
 	return nil
+}
+
+// GetLanguage returns the configured language ("" if not set).
+func GetLanguage() string {
+	mc, err := loadMultiConfig()
+	if err != nil {
+		return ""
+	}
+	return mc.Language
+}
+
+// SetLanguage persists the language choice.
+func SetLanguage(lang string) error {
+	mc, _ := loadMultiConfig()
+	if mc == nil {
+		mc = &MultiConfig{}
+	}
+	mc.Language = lang
+	dir := ConfigDir()
+	os.MkdirAll(dir, 0700)
+	data, _ := yaml.Marshal(mc)
+	return os.WriteFile(FilePath(), data, 0600)
 }
 
 // RemoveServer removes a named server from the config.

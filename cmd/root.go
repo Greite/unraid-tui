@@ -29,6 +29,8 @@ var rootCmd = &cobra.Command{
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		if langFlag != "" {
 			i18n.SetLang(langFlag)
+		} else if saved := config.GetLanguage(); saved != "" {
+			i18n.SetLang(saved)
 		} else {
 			i18n.DetectLang()
 		}

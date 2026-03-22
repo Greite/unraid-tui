@@ -416,7 +416,9 @@ func (m Model) updateLangPicker(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.langCursor++
 			}
 		case "enter":
-			i18n.SetLang(langOptions[m.langCursor].code)
+			lang := langOptions[m.langCursor].code
+			i18n.SetLang(lang)
+			config.SetLanguage(lang)
 			m.showLangPicker = false
 		}
 	}
