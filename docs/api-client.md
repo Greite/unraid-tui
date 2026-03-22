@@ -1,17 +1,17 @@
-# Client API
+# API Client
 
-Le client API encapsule toute la communication avec l'API GraphQL d'Unraid.
+The API client encapsulates all communication with the Unraid GraphQL API.
 
 ## Architecture
 
 ```
 UnraidClient (interface)
     │
-    ├── httpClient (implémentation réelle)
-    │   └── envoie des POST HTTP à /graphql
+    ├── httpClient (real implementation)
+    │   └── sends HTTP POST requests to /graphql
     │
     └── MockClient (tests)
-        └── fonctions configurables par test
+        └── configurable functions per test
 ```
 
 ### Interface
@@ -21,40 +21,61 @@ type UnraidClient interface {
     GetSystemInfo(ctx context.Context) (*model.SystemInfo, error)
     GetSystemMetrics(ctx context.Context) (*model.SystemMetrics, error)
     GetContainers(ctx context.Context) ([]model.Container, error)
+    GetContainerStats(ctx context.Context, id string) (*model.ContainerStats, error)
+    GetVMs(ctx context.Context) ([]model.VM, error)
+    GetShares(ctx context.Context) ([]model.Share, error)
+    GetArrayInfo(ctx context.Context) (*model.ArrayInfo, error)
+    GetParityHistory(ctx context.Context) ([]model.ParityEvent, error)
+
+    // Mutations
+    StartContainer(ctx context.Context, id string) error
+    StopContainer(ctx context.Context, id string) error
+    PauseContainer(ctx context.Context, id string) error
+    UpdateContainer(ctx context.Context, id string) error
+    SetAutostart(ctx context.Context, id string, enabled bool) error
+
+    StartVM(ctx context.Context, id string) error
+    StopVM(ctx context.Context, id string) error
+    PauseVM(ctx context.Context, id string) error
+
+    DismissNotification(ctx context.Context, id string) error
+    DismissAllNotifications(ctx context.Context) error
 }
 ```
 
-Tout le code TUI dépend de cette interface, jamais de l'implémentation concrète.
+All TUI code depends on this interface, never on the concrete implementation.
 
-## Implémentation HTTP
+## HTTP Implementation
 
-### Requêtes
+### Requests
 
-Chaque méthode envoie une requête POST à `<server_url>/graphql` avec :
+Each method sends a POST request to `<server_url>/graphql` with:
 
 - **Header** `Content-Type: application/json`
 - **Header** `Authorization: Bearer <api_key>`
-- **Body** : `{"query": "<graphql_query>"}`
+- **Body**: `{"query": "<graphql_query>"}`
 
-### Réponses
+The API key is retrieved from the system keychain at runtime.
 
-Les réponses GraphQL sont décodées en structs Go spécifiques (package `api/types.go`), puis converties en types domaine (`model/model.go`) via des méthodes `toDomain()`.
+### Responses
 
-### Gestion d'erreurs
+GraphQL responses are decoded into Go-specific structs (package `api/types.go`), then converted to domain types (`model/model.go`) via `toDomain()` methods.
 
-| Situation                | Erreur retournée            |
+### Error Handling
+
+| Situation                | Error returned              |
 |--------------------------|-----------------------------|
-| Serveur injoignable      | `ErrConnectionFailed`       |
-| Réponse 401 ou 403      | `ErrUnauthorized`           |
-| Code HTTP inattendu      | `unexpected status <code>`  |
-| Erreur dans le JSON GraphQL | `graphql: <message>`     |
-| JSON invalide            | `decoding response: <err>`  |
+| Server unreachable       | `ErrConnectionFailed`       |
+| 401 or 403 response      | `ErrUnauthorized`           |
+| Unexpected HTTP code      | `unexpected status <code>`  |
+| Error in GraphQL JSON    | `graphql: <message>`        |
+| Invalid JSON             | `decoding response: <err>`  |
 
-Les erreurs sentinelles `ErrConnectionFailed` et `ErrUnauthorized` permettent une gestion spécifique côté TUI (affichage adapté, pas de retry sur erreur d'auth).
+The sentinel errors `ErrConnectionFailed` and `ErrUnauthorized` allow specific handling on the TUI side (adapted display, no retry on auth errors).
 
-## Mock pour les tests
+## Mock for Tests
 
-`api/mock.go` fournit un `MockClient` avec des champs de fonction remplaçables :
+`api/mock.go` provides a `MockClient` with replaceable function fields:
 
 ```go
 mock := &api.MockClient{
@@ -64,33 +85,38 @@ mock := &api.MockClient{
 }
 ```
 
-Si une fonction n'est pas définie, le mock retourne `(nil, nil)`.
+If a function is not defined, the mock returns `(nil, nil)`.
 
-## Requêtes GraphQL
+## GraphQL Queries
 
-Les requêtes sont des constantes string dans `api/queries.go`. Elles correspondent à l'API GraphQL Unraid :
+Queries are string constants in `api/queries.go`. They correspond to the Unraid GraphQL API:
 
-| Constante            | Données récupérées                          |
-|----------------------|---------------------------------------------|
-| `querySystemInfo`    | CPU, mémoire, OS, baseboard                 |
-| `querySystemMetrics` | Usage CPU %, usage mémoire %                |
-| `queryContainers`    | Liste des containers avec ports et réseaux  |
+| Constant               | Data retrieved                                       |
+|------------------------|------------------------------------------------------|
+| `querySystemInfo`      | CPU, memory, OS, baseboard                           |
+| `querySystemMetrics`   | CPU usage %, memory usage %, CPU temp/power/per-core |
+| `queryContainers`      | List of containers with ports and networks           |
+| `queryContainerStats`  | Per-container CPU and memory statistics              |
+| `queryVMs`             | List of VMs with state and configuration             |
+| `queryShares`          | List of shares with size and access settings         |
+| `queryArrayInfo`       | Array disks, cache, parity status and capacity       |
+| `queryParityHistory`   | Parity check history with dates and results          |
 
 ## Tests
 
-6 tests couvrent le client HTTP :
+Tests cover the HTTP client:
 
-- `TestGetSystemInfo_Success` — Vérifie headers, parsing, conversion domaine
-- `TestGetSystemMetrics_Success` — Parsing des métriques
-- `TestGetContainers_Success` — Parsing multi-containers avec ports
-- `TestGetSystemInfo_Unauthorized` — Détection du 401
-- `TestGetSystemInfo_GraphQLError` — Erreur dans la réponse GraphQL
-- `TestGetSystemInfo_ConnectionError` — Serveur injoignable
+- `TestGetSystemInfo_Success` — Verifies headers, parsing, domain conversion
+- `TestGetSystemMetrics_Success` — Metrics parsing
+- `TestGetContainers_Success` — Multi-container parsing with ports
+- `TestGetSystemInfo_Unauthorized` — 401 detection
+- `TestGetSystemInfo_GraphQLError` — Error in GraphQL response
+- `TestGetSystemInfo_ConnectionError` — Unreachable server
 
-## Fichiers concernés
+## Related Files
 
-- `internal/api/client.go` — Interface + implémentation HTTP
-- `internal/api/client_test.go` — Tests avec httptest
-- `internal/api/queries.go` — Requêtes GraphQL
-- `internal/api/types.go` — Structs réponses JSON + conversion domaine
-- `internal/api/mock.go` — Mock client pour tests TUI
+- `internal/api/client.go` — Interface + HTTP implementation
+- `internal/api/client_test.go` — Tests with httptest
+- `internal/api/queries.go` — GraphQL queries
+- `internal/api/types.go` — JSON response structs + domain conversion
+- `internal/api/mock.go` — Mock client for TUI tests

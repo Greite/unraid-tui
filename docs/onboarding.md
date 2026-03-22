@@ -1,154 +1,152 @@
 # Onboarding
 
-L'onboarding est un assistant de configuration interactif qui se lance automatiquement au premier demarrage du CLI, quand aucune configuration n'est detectee.
+The onboarding wizard is an interactive configuration assistant that launches automatically on first startup when no configuration is detected.
 
-## Declenchement
+## Trigger
 
-L'onboarding se lance si :
-- Le fichier `~/.unraid-tui/config.yaml` n'existe pas
-- **Et** les variables d'environnement `UNRAID_SERVER_URL` / `UNRAID_API_KEY` ne sont pas definies
+The onboarding launches if:
+- The file `~/.unraid-tui/config.yaml` does not exist
+- **And** the environment variables `UNRAID_SERVER_URL` / `UNRAID_API_KEY` are not defined
 
-Si la config existe (fichier ou env vars), le dashboard se lance directement.
+If the configuration exists (file or env vars), the dashboard launches directly.
 
-## Etapes
+## Steps
 
-### 1. Ecran d'accueil
+The onboarding consists of 4 steps with a progress bar at the top of the screen.
+
+### Step 1: Server Name
 
 ```
 ╭────────────────────────────────────────────────────────╮
-│  Bienvenue !                                           │
+│  Welcome!                                              │
 │                                                        │
-│  Cet assistant va vous aider a configurer la connexion │
-│  a votre serveur Unraid en quelques etapes :           │
+│  This wizard will help you configure the connection    │
+│  to your Unraid server in a few steps.                 │
 │                                                        │
-│    1. Saisir l'adresse de votre serveur                │
-│    2. Tester la connexion                              │
-│    3. Configurer votre cle API                         │
-│    4. Sauvegarder la configuration                     │
+│  Enter a friendly name for your server:                │
 │                                                        │
-│  Le fichier sera sauvegarde dans ~/.unraid-tui/config.yaml    │
+│  > tower                                               │
+│                                                        │
 ╰────────────────────────────────────────────────────────╯
 
-  enter commencer  esc retour
+  enter next  esc back
 ```
 
-Presente le processus et ses etapes.
+The user enters a friendly name to identify the server (used for multi-server switching with `Ctrl+S`).
 
-### 2. Adresse du serveur (Etape 1/3)
+Validation: the name cannot be empty.
 
-L'utilisateur saisit l'URL de son serveur Unraid. L'input accepte plusieurs formats :
+### Step 2: Server URL
 
-| Saisie                        | Normalise en                  |
+The user enters the URL of their Unraid server. The input accepts several formats:
+
+| Input                         | Normalized to                 |
 |-------------------------------|-------------------------------|
 | `192.168.1.100:3001`          | `http://192.168.1.100:3001`   |
 | `http://tower:3001`           | `http://tower:3001`           |
 | `https://secure.local:3001/`  | `https://secure.local:3001`   |
 
-Normalisation automatique :
-- Ajout de `http://` si aucun schema n'est present
-- Suppression du `/` final
+Automatic normalization:
+- Adds `http://` if no scheme is present
+- Removes trailing `/`
 
-Validation : l'URL ne peut pas etre vide.
+Validation: the URL cannot be empty.
 
-### 3. Test de connexion
+A connection test is performed by sending a minimal GraphQL query (`{ __typename }`) to the server. The test only verifies that the server is reachable (even a 401 response is considered a success at this stage -- it means the API is present).
 
-Envoie une requete GraphQL minimale (`{ __typename }`) au serveur. Le test verifie seulement que le serveur est joignable (meme une reponse 401 est consideree comme un succes a cette etape — cela signifie que l'API est bien la).
+- **Success**: proceed to the next step
+- **Failure**: return to URL input with the error message
+- **Timeout**: 5 seconds
 
-- **Succes** : passage a l'etape suivante
-- **Echec** : retour a la saisie de l'URL avec le message d'erreur
-- **Timeout** : 5 secondes
+### Step 3: API Key Instructions
 
-### 4. Instructions pour la cle API (Etape 2/3)
+Displays detailed instructions for creating an API key from the Unraid web interface:
 
-Affiche les instructions detaillees pour creer une cle API depuis l'interface web Unraid :
-
-1. Ouvrir l'interface web Unraid
+1. Open the Unraid web interface
 2. Settings > Management Access > Developer Options
-3. Ouvrir Apollo GraphQL Studio
-4. Executer la mutation `apiKey.create`
-5. Copier la cle retournee
+3. Open Apollo GraphQL Studio
+4. Execute the `apiKey.create` mutation
+5. Copy the returned key
 
-La mutation GraphQL exacte est affichee dans l'interface.
+The exact GraphQL mutation is displayed in the interface.
 
-### 5. Saisie de la cle API (Etape 3/3)
+### Step 4: API Key Entry
 
-Champ de saisie masque (mode password — les caracteres sont remplaces par `*`).
+Masked input field (password mode -- characters are replaced with `*`).
 
-Validation : la cle ne peut pas etre vide.
+Validation: the key cannot be empty.
 
-### 6. Verification de la cle API
+An authenticated request (`info { os { hostname } }`) is sent to verify that the key works:
 
-Envoie une requete authentifiee (`info { os { hostname } }`) pour verifier que la cle fonctionne.
+- **200 OK**: the key is valid, proceed to save
+- **401/403**: invalid key or insufficient permissions, return to input
+- **Other**: error displayed, return to input
 
-- **200 OK** : la cle est valide, passage a la sauvegarde
-- **401/403** : cle invalide ou permissions insuffisantes, retour a la saisie
-- **Autre** : erreur affichee, retour a la saisie
+## Save
 
-### 7. Sauvegarde
+On successful validation, the configuration is saved:
 
-Ecrit le fichier `~/.unraid-tui/config.yaml` avec les permissions `0600` (lecture/ecriture proprietaire uniquement).
+1. The server entry (name + URL) is written to `~/.unraid-tui/config.yaml` with permissions `0600` (owner read/write only)
+2. The API key is stored in the **system keychain** (macOS Keychain, Linux secret-service, Windows Credential Manager), not in the config file
 
-Format du fichier :
-```yaml
-server_url: "http://192.168.1.100:3001"
-api_key: "votre-cle-api"
-```
-
-### 8. Ecran de confirmation
+### Confirmation Screen
 
 ```
 ╭────────────────────────────────────────────────────────╮
-│  Configuration terminee !                              │
+│  Configuration complete!                               │
 │                                                        │
-│  Votre configuration a ete sauvegardee dans :          │
-│    ~/.unraid-tui/config.yaml                                  │
+│  Your configuration has been saved:                    │
+│    Config: ~/.unraid-tui/config.yaml                   │
+│    API key: stored in system keychain                  │
 │                                                        │
-│  Serveur : http://192.168.1.100:3001                   │
-│  Cle API : ********** (sauvegardee)                    │
+│  Server: tower (http://192.168.1.100:3001)             │
 │                                                        │
-│  Le dashboard va maintenant se lancer.                 │
+│  The dashboard will now launch.                        │
 ╰────────────────────────────────────────────────────────╯
 
-  enter lancer le dashboard
+  enter launch dashboard
 ```
 
-Apres confirmation, le dashboard principal se lance automatiquement.
+After confirmation, the main dashboard launches automatically.
 
 ## Navigation
 
-| Touche   | Action                                  |
+| Key      | Action                                  |
 |----------|-----------------------------------------|
-| `enter`  | Valider / Passer a l'etape suivante     |
-| `esc`    | Revenir a l'etape precedente            |
-| `Ctrl+C` | Annuler et quitter                     |
+| `Enter`  | Validate / Proceed to next step         |
+| `Esc`    | Return to previous step                 |
+| `Ctrl+C` | Cancel and quit                        |
 
-## Barre de progression
+## Progress Bar
 
-Une barre de progression en haut de l'ecran indique l'avancement :
+A progress bar at the top of the screen indicates the current step:
 
 ```
-  ● Serveur  —  ◉ Connexion  —  ○ Cle API  —  ○ Termine
+  ● Name  —  ◉ URL  —  ○ API Info  —  ○ API Key
 ```
 
-- `●` etape terminee (vert)
-- `◉` etape en cours (violet)
-- `○` etape a venir (gris)
+- `●` completed step (green)
+- `◉` current step (purple)
+- `○` upcoming step (gray)
 
-## Gestion des erreurs
+## Error Handling
 
-Les erreurs sont affichees en rouge sous le contenu de l'etape. L'utilisateur reste sur l'etape en cours et peut corriger sa saisie.
+Errors are displayed in red below the step content. The user remains on the current step and can correct their input.
 
-Erreurs possibles :
-- URL vide
-- Serveur injoignable (timeout, DNS, connexion refusee)
-- URL invalide
-- Cle API vide
-- Cle API invalide (401/403)
-- Erreur de sauvegarde du fichier
+Possible errors:
+- Empty name
+- Empty URL
+- Server unreachable (timeout, DNS, connection refused)
+- Invalid URL
+- Empty API key
+- Invalid API key (401/403)
+- File save error
+- Keychain access error
 
-## Fichiers concernes
+## Related Files
 
-- `internal/tui/onboarding/onboarding.go` — Modele Bubbletea multi-etapes
-- `internal/tui/onboarding/onboarding_test.go` — 22 tests unitaires
+- `internal/tui/onboarding/onboarding.go` — Multi-step Bubbletea model
+- `internal/tui/onboarding/onboarding_test.go` — Unit tests
 - `internal/config/config.go` — `Exists()`, `Save()`, `FilePath()`
-- `cmd/root.go` — Detection et lancement de l'onboarding
+- `internal/config/keychain.go` — System keychain integration
+- `cmd/root.go` — Onboarding detection and launch

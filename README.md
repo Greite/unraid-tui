@@ -1,78 +1,84 @@
 # unraid-tui
 
-Interface terminal (TUI) pour monitorer et gerer un serveur [Unraid](https://unraid.net/) depuis la ligne de commande, via l'API GraphQL.
+A terminal user interface (TUI) to monitor and manage [Unraid](https://unraid.net/) servers from the command line, via the GraphQL API.
 
 ```
-╭─────────────────── UNRAID CLI ────────────────────╮
-│  [Dashboard]  Docker                               │
+╭─────────────────── UNRAID TUI ────────────────────╮
+│  [Dashboard]  Docker  VMs  Shares  Notifications   │
 ├────────────────────────────────────────────────────┤
 │  ╭── CPU ──────────────╮  ╭── Memory ────────────╮ │
 │  │ AMD Ryzen 9 5900X   │  │ Used: 24.3 / 64.0 GB│ │
 │  │ Cores: 12 / 24T     │  │ ████████░░░░ 38.0%   │ │
 │  │ Usage: ███████░ 72%  │  │                      │ │
+│  │ Temp: 62°C  85W     │  │                      │ │
 │  ╰─────────────────────╯  ╰──────────────────────╯ │
 │  ╭── System ───────────────────────────────────────╮│
-│  │ Hostname: tower  │ OS: Unraid 6.12.6           ││
-│  │ Kernel: 6.1.64   │ Board: ASRock X570 Taichi   ││
+│  │ Hostname: tower  │ OS: Unraid 7.2.0            ││
+│  │ Kernel: 6.12.8   │ Board: ASRock X570 Taichi   ││
 │  ╰─────────────────────────────────────────────────╯│
 ├────────────────────────────────────────────────────┤
-│  tab changer page  │  1/2 aller a  │  q quitter   │
+│  Tab switch page │ Ctrl+S server │ Ctrl+L lang │ q quit│
 ╰────────────────────────────────────────────────────╯
 ```
 
-## Fonctionnalites
+## Features
 
-- **Dashboard** — CPU, memoire, infos systeme avec rafraichissement automatique (3s)
-- **Docker** — Tableau interactif de tous les containers (nom, image, etat, ports)
-- **Onboarding** — Assistant de configuration guide au premier lancement
-- **Navigation clavier** — Changement de page par `Tab` ou touches numeriques
+- **Dashboard** -- System info, CPU (per-core usage, temperature, power draw), Memory, Network interfaces, Disks (array + cache + parity), Hardware (GPU/PCI/USB/RAM), Array capacity, Parity status, Unraid version. Auto-refreshes every 3 seconds.
+- **Docker** -- Sortable table of all containers. Start/stop/pause/unpause, update single or update all, log viewer with follow mode, SSH console access, open WebUI. Update-available indicator per container.
+- **VMs** -- List with current state. Start/stop/pause/resume/reboot/force-stop actions.
+- **Shares** -- List of all shares with usage progress bars.
+- **Notifications** -- List with importance levels. Archive a single notification or all at once. Unread badge displayed in the header.
+- **Multi-server** -- Manage named servers. Switch with `Ctrl+S` picker. Add, delete, or set a default server. `--server` CLI flag for scripting.
+- **Internationalization** -- English (default) and French. Switch with `Ctrl+L` picker. `--lang` CLI flag and automatic `LANG` environment variable detection.
+- **Onboarding** -- Guided setup wizard on first launch: server name, URL connectivity test, API key entry.
+- **Secure config** -- Configuration stored in `~/.unraid-tui/config.yaml`. API keys are saved in the system keychain (macOS Keychain, GNOME Keyring, Windows Credential Manager).
 
-## Prerequis
+## Prerequisites
 
-- **Unraid 7.2+** (API GraphQL integree) ou Unraid 6.x avec le plugin [Unraid Connect](https://docs.unraid.net/API/)
-- Une **cle API** Unraid (l'assistant de configuration vous guidera)
+- **Unraid 7.2+** (built-in GraphQL API) or Unraid 6.x with the [Unraid Connect](https://docs.unraid.net/API/) plugin
+- An **Unraid API key** (the onboarding wizard will guide you through creation)
 
 ## Installation
 
-### Homebrew (macOS)
+### Homebrew (macOS / Linux)
 
 ```bash
 brew install Greite/tap/unraid-tui
 ```
 
-Mise a jour :
+Upgrade:
 
 ```bash
 brew upgrade unraid-tui
 ```
 
-### Binaires pre-compiles
+### Pre-built binaries
 
-Telecharger le binaire correspondant a votre OS/architecture depuis la page [Releases](https://github.com/Greite/unraid-tui/releases) :
+Download the binary matching your OS and architecture from the [Releases](https://github.com/Greite/unraid-tui/releases) page:
 
-| OS      | Architecture | Fichier                                |
-|---------|-------------|----------------------------------------|
-| macOS   | Apple Silicon| `unraid-tui_x.x.x_darwin_arm64.tar.gz`|
-| macOS   | Intel       | `unraid-tui_x.x.x_darwin_amd64.tar.gz`|
-| Linux   | x86_64      | `unraid-tui_x.x.x_linux_amd64.tar.gz` |
-| Linux   | ARM64       | `unraid-tui_x.x.x_linux_arm64.tar.gz` |
-| Windows | x86_64      | `unraid-tui_x.x.x_windows_amd64.zip`  |
+| OS      | Architecture  | File                                   |
+|---------|---------------|----------------------------------------|
+| macOS   | Apple Silicon | `unraid-tui_x.x.x_darwin_arm64.tar.gz`|
+| macOS   | Intel         | `unraid-tui_x.x.x_darwin_amd64.tar.gz`|
+| Linux   | x86_64        | `unraid-tui_x.x.x_linux_amd64.tar.gz` |
+| Linux   | ARM64         | `unraid-tui_x.x.x_linux_arm64.tar.gz` |
+| Windows | x86_64        | `unraid-tui_x.x.x_windows_amd64.zip`  |
 
 ```bash
-# Exemple macOS Apple Silicon
+# Example: macOS Apple Silicon
 tar xzf unraid-tui_*_darwin_arm64.tar.gz
 sudo mv unraid-tui /usr/local/bin/
 ```
 
 ### Go install
 
-Necessite Go 1.22+ :
+Requires Go 1.26+:
 
 ```bash
 go install github.com/Greite/unraid-tui@latest
 ```
 
-### Depuis les sources
+### From source
 
 ```bash
 git clone https://github.com/Greite/unraid-tui.git
@@ -80,51 +86,58 @@ cd unraid-tui
 make install
 ```
 
-Cela compile le binaire et le copie dans `/usr/local/bin/`.
+This compiles the binary and copies it to `/usr/local/bin/`.
 
-Pour desinstaller :
+To uninstall:
 
 ```bash
 make uninstall
 ```
 
-## Demarrage rapide
+## Quick start
 
 ```bash
 unraid-tui
 ```
 
-Au premier lancement, un assistant interactif vous guide pour :
+On first launch, an interactive wizard guides you through:
 
-1. Saisir l'adresse de votre serveur Unraid
-2. Tester la connexion
-3. Creer et configurer votre cle API
-4. Sauvegarder la configuration
+1. Choosing a name for your server
+2. Entering the server URL and testing the connection
+3. Creating and entering your API key
+4. Saving the configuration
 
-La configuration est enregistree dans `~/.unraid-tui/config.yaml`.
+The configuration is stored in `~/.unraid-tui/config.yaml`, with API keys secured in the system keychain.
 
-### Configuration manuelle
+### CLI flags
 
-Si vous preferez configurer manuellement, creez le fichier `~/.unraid-tui/config.yaml` :
+```bash
+unraid-tui --server myserver   # Connect to a specific named server
+unraid-tui --lang fr           # Force a specific language
+```
+
+### Manual configuration
+
+If you prefer to configure manually, create `~/.unraid-tui/config.yaml`:
 
 ```yaml
 server_url: "http://192.168.1.100:3001"
-api_key: "votre-cle-api"
+api_key: "your-api-key"
 ```
 
-Ou via variables d'environnement :
+Or via environment variables:
 
 ```bash
 export UNRAID_SERVER_URL="http://192.168.1.100:3001"
-export UNRAID_API_KEY="votre-cle-api"
+export UNRAID_API_KEY="your-api-key"
 ```
 
-### Obtenir une cle API
+### Obtaining an API key
 
-1. Ouvrir l'interface web Unraid
-2. **Settings > Management Access > Developer Options**
-3. Ouvrir Apollo GraphQL Studio
-4. Executer :
+1. Open the Unraid web interface
+2. Go to **Settings > Management Access > Developer Options**
+3. Open Apollo GraphQL Studio
+4. Run:
 
 ```graphql
 mutation {
@@ -137,86 +150,101 @@ mutation {
 }
 ```
 
-5. Copier la cle retournee
+5. Copy the returned key
 
-## Utilisation
+## Usage
 
-### Raccourcis clavier
+### Keyboard shortcuts
 
-| Touche       | Action                         |
-|--------------|--------------------------------|
-| `Tab`        | Page suivante                  |
-| `Shift+Tab`  | Page precedente                |
-| `1`          | Dashboard                      |
-| `2`          | Docker                         |
-| `r`          | Rafraichir (page Docker)       |
-| `↑` / `↓`   | Naviguer dans les tableaux     |
-| `q`          | Quitter                        |
-| `Ctrl+C`     | Quitter                        |
+| Key          | Action                              |
+|--------------|-------------------------------------|
+| `Tab`        | Next page                           |
+| `Shift+Tab`  | Previous page                       |
+| `1`-`5`     | Jump to page by number              |
+| `Ctrl+S`    | Open server picker (multi-server)   |
+| `Ctrl+L`    | Open language picker                |
+| `↑` / `↓`   | Navigate within tables/lists        |
+| `Enter`     | Confirm / open action menu          |
+| `r`         | Refresh current page                |
+| `q`         | Quit                                |
+| `Ctrl+C`    | Quit                                |
 
 ### Pages
 
 #### Dashboard
 
-Affiche en temps reel :
-- **CPU** — modele, nombre de coeurs, frequence, utilisation (%)
-- **Memoire** — utilisation avec barre de progression
-- **Systeme** — hostname, OS, kernel, carte mere
+Displays real-time system metrics:
+- **CPU** -- Model, core count, frequency, per-core usage, temperature, and power draw
+- **Memory** -- Used / total with progress bar
+- **Network** -- Interface list with transfer rates
+- **Disks** -- Array, cache, and parity drives with status
+- **Hardware** -- GPU, PCI devices, USB devices, RAM modules
+- **Array** -- Total capacity and usage
+- **Parity** -- Status and last check result
+- **System** -- Hostname, Unraid version, kernel, motherboard
 
-Les metriques se rafraichissent automatiquement toutes les 3 secondes.
+Metrics auto-refresh every 3 seconds.
 
 #### Docker
 
-Tableau interactif listant tous les containers :
+Interactive table of all containers:
 
-| Colonne | Description |
-|---------|-------------|
-| NAME    | Nom du container |
-| IMAGE   | Image Docker |
-| STATE   | Etat avec indicateur (● running, ○ exited, ◑ paused) |
-| STATUS  | Detail ("Up 14 days", "Exited (0) 2 days ago") |
-| PORTS   | Mapping host:container |
+| Column | Description                                         |
+|--------|-----------------------------------------------------|
+| NAME   | Container name                                      |
+| IMAGE  | Docker image                                        |
+| STATE  | Current state (running / exited / paused indicator) |
+| STATUS | Detail ("Up 14 days", "Exited (0) 2 days ago")     |
+| UPDATE | Update-available indicator                          |
+| PORTS  | Host:container port mapping                         |
 
-## Developpement
+The table is sortable by clicking column headers. Actions available on a selected container: start, stop, pause, unpause, update, view logs (with follow mode), open SSH console, and open WebUI. An "Update All" action updates every container with a pending update.
 
-### Commandes
+#### VMs
+
+Lists all virtual machines with their current state. Available actions: start, stop, pause, resume, reboot, and force-stop.
+
+#### Shares
+
+Displays all configured shares with usage progress bars showing consumed vs. available space.
+
+#### Notifications
+
+Lists system notifications with importance levels (normal, warning, alert). You can archive a single notification or archive all at once. An unread badge is shown in the header bar.
+
+## Development
+
+### Commands
 
 ```bash
-make build         # Compiler le binaire
-make test          # Lancer les tests
-make test-verbose  # Tests avec detail
-make test-cover    # Tests avec couverture HTML
-make lint          # go vet
-make run           # Build + executer
-make clean         # Nettoyer
+make build         # Compile the binary
+make test          # Run tests
+make test-verbose  # Run tests with verbose output
+make test-cover    # Run tests with HTML coverage report
+make lint          # Run go vet
+make run           # Build and run
+make clean         # Clean build artifacts
 ```
 
 ### Architecture
 
 ```
-cmd/                     → Point d'entree Cobra
-internal/api/            → Client GraphQL (interface + HTTP)
-internal/config/         → Configuration Viper
-internal/model/          → Types domaine
-internal/tui/            → App Bubbletea (routeur)
-internal/tui/common/     → Styles, messages, helpers
-internal/tui/dashboard/  → Page dashboard
-internal/tui/docker/     → Page Docker
-internal/tui/onboarding/ → Assistant de configuration
+cmd/                        -> Cobra CLI entry point
+internal/api/               -> GraphQL client (interface + HTTP)
+internal/config/            -> Viper-based configuration
+internal/i18n/              -> Internationalization (en, fr)
+internal/model/             -> Domain types
+internal/tui/               -> Bubbletea app (router, header, footer)
+internal/tui/common/        -> Shared styles, messages, helpers
+internal/tui/dashboard/     -> Dashboard page
+internal/tui/docker/        -> Docker page
+internal/tui/vms/           -> VMs page
+internal/tui/shares/        -> Shares page
+internal/tui/notifications/ -> Notifications page
+internal/tui/onboarding/    -> Guided setup wizard
 ```
 
 ### Tests
-
-58 tests couvrent l'ensemble du projet :
-
-| Package      | Tests | Ce qui est teste |
-|--------------|-------|------------------|
-| `api`        | 6     | Client HTTP, parsing, erreurs auth/connexion |
-| `config`     | 5     | Chargement fichier, env vars, sauvegarde |
-| `tui`        | 7     | Navigation pages, quit, resize |
-| `dashboard`  | 7     | Panneaux CPU/memoire, loading, erreurs |
-| `docker`     | 9     | Table containers, formatage, helpers |
-| `onboarding` | 22    | Chaque transition d'etape, validation, normalisation |
 
 ```bash
 make test
@@ -224,45 +252,46 @@ make test
 
 ### Release
 
-Les releases sont gerees par [GoReleaser](https://goreleaser.com/). A chaque tag Git, GoReleaser :
+Releases are managed by [GoReleaser](https://goreleaser.com/). On each Git tag, GoReleaser:
 
-1. Compile les binaires pour macOS, Linux et Windows (amd64 + arm64)
-2. Cree les archives `.tar.gz` / `.zip`
-3. Publie la release GitHub
-4. Met a jour la formule Homebrew dans [Greite/homebrew-tap](https://github.com/Greite/homebrew-tap)
+1. Compiles binaries for macOS, Linux, and Windows (amd64 + arm64)
+2. Creates `.tar.gz` / `.zip` archives
+3. Publishes the GitHub release
+4. Updates the Homebrew formula in [Greite/homebrew-tap](https://github.com/Greite/homebrew-tap)
 
 ```bash
-# Tester la release localement (sans publier)
+# Test the release locally (dry run, no publish)
 make release-dry
 
-# Publier une release
+# Publish a release
 git tag v0.1.0
 git push origin v0.1.0
 goreleaser release --clean
 ```
 
-### Stack technique
+### Tech stack
 
-| Composant | Librairie |
-|-----------|-----------|
-| TUI       | [Bubbletea v2](https://github.com/charmbracelet/bubbletea) |
-| Styling   | [Lipgloss v2](https://github.com/charmbracelet/lipgloss) |
-| Composants| [Bubbles v2](https://github.com/charmbracelet/bubbles) (table, spinner, textinput) |
-| CLI       | [Cobra](https://github.com/spf13/cobra) |
-| Config    | [Viper](https://github.com/spf13/viper) |
-| API       | [Unraid GraphQL API](https://docs.unraid.net/API/) via `net/http` |
+| Component  | Library                                                                   |
+|------------|---------------------------------------------------------------------------|
+| TUI        | [Bubbletea v2](https://github.com/charmbracelet/bubbletea)               |
+| Styling    | [Lipgloss v2](https://github.com/charmbracelet/lipgloss)                 |
+| Components | [Bubbles v2](https://github.com/charmbracelet/bubbles) (table, spinner, textinput) |
+| CLI        | [Cobra](https://github.com/spf13/cobra)                                  |
+| Config     | [Viper](https://github.com/spf13/viper)                                  |
+| Keychain   | [go-keyring](https://github.com/zalando/go-keyring)                      |
+| API        | [Unraid GraphQL API](https://docs.unraid.net/API/) via `net/http`        |
 
 ## Documentation
 
-La documentation detaillee de chaque fonctionnalite est dans le dossier [`docs/`](docs/) :
+Detailed documentation for each feature is in the [`docs/`](docs/) directory:
 
 - [Configuration](docs/configuration.md)
 - [Onboarding](docs/onboarding.md)
 - [Dashboard](docs/dashboard.md)
 - [Docker](docs/docker.md)
 - [Navigation](docs/navigation.md)
-- [Client API](docs/api-client.md)
+- [API Client](docs/api-client.md)
 
-## Licence
+## License
 
 MIT

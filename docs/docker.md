@@ -1,83 +1,113 @@
 # Docker
 
-La page Docker affiche l'ensemble des containers Docker du serveur Unraid dans un tableau interactif.
+The Docker page displays all Docker containers on the Unraid server in an interactive table.
 
-## Tableau des containers
+## Container Table
 
 ```
-  Containers (5)  3 running
+  Containers (5)  3 running                              ⟳ 1 update available
 
   ┌──────────────┬─────────────────────┬────────────┬──────────────────┬─────────────┐
   │ NAME         │ IMAGE               │ STATE      │ STATUS           │ PORTS       │
   ├──────────────┼─────────────────────┼────────────┼──────────────────┼─────────────┤
   │ plex         │ plexinc/pms:latest  │ ● running  │ Up 14 days       │ 32400:32400 │
-  │ nextcloud    │ nextcloud:28        │ ● running  │ Up 14 days       │ 443:443     │
+  │ nextcloud  ⟳ │ nextcloud:28        │ ● running  │ Up 14 days       │ 443:443     │
   │ homeassistant│ ghcr.io/ha:latest   │ ● running  │ Up 14 days       │ 8123:8123   │
   │ pihole       │ pihole/pihole:lat.. │ ○ exited   │ Exited (0) 2d    │ -           │
   │ test-db      │ postgres:15         │ ○ exited   │ Exited (1) 5d    │ -           │
   └──────────────┴─────────────────────┴────────────┴──────────────────┴─────────────┘
 
-  ↑/↓: naviguer  │  r: rafraîchir
+  ↑/↓: navigate  │  s: sort  │  enter: actions  │  r: refresh
 ```
 
-### Colonnes
+### Columns
 
-| Colonne | Description                                           |
-|---------|-------------------------------------------------------|
-| NAME    | Nom du container                                      |
-| IMAGE   | Image Docker (tronquée à 25 caractères si nécessaire) |
-| STATE   | État avec indicateur visuel (● running, ○ exited, ◑ paused) |
-| STATUS  | Détail du statut (ex: "Up 14 days", "Exited (0) 2 days ago") |
-| PORTS   | Mapping de ports host:container (ou `-` si aucun)     |
+| Column | Description                                           |
+|--------|-------------------------------------------------------|
+| NAME   | Container name (with ⟳ update indicator if available)  |
+| IMAGE  | Docker image (truncated to 25 characters if needed)    |
+| STATE  | State with visual indicator (● running, ○ exited, ◑ paused) |
+| STATUS | Status detail (e.g., "Up 14 days", "Exited (0) 2 days ago") |
+| PORTS  | Host:container port mapping (or `-` if none)           |
 
-### En-tête
+### Header
 
-- **Nombre total** de containers entre parenthèses
-- **Nombre de containers running** affiché à côté
+- **Total number** of containers in parentheses
+- **Number of running containers** displayed alongside
+- **Update indicator** showing how many container updates are available
+
+## Sorting
+
+Press `s` to cycle through sort modes:
+
+- **Name** (alphabetical)
+- **State** (running first, then paused, then exited)
+- **Image** (alphabetical)
+
+## Container Actions
+
+Press `Enter` on a selected container to open the action menu:
+
+| Action         | Description                                           |
+|----------------|-------------------------------------------------------|
+| Start          | Start a stopped container                             |
+| Stop           | Stop a running container                              |
+| Pause / Unpause| Pause or unpause a running container                  |
+| Update         | Pull the latest image and recreate the container      |
+| Logs           | View container logs with follow mode (live streaming)  |
+| SSH Console    | Open an interactive SSH console into the container     |
+| WebUI          | Open the container's web interface in the default browser |
+| Set Autostart  | Toggle autostart on/off for the container              |
+
+Available actions are context-sensitive based on the container's current state.
 
 ## Navigation
 
-| Touche | Action                        |
-|--------|-------------------------------|
-| `↑`/`↓`| Naviguer dans le tableau      |
-| `r`    | Rafraîchir la liste           |
+| Key     | Action                        |
+|---------|-------------------------------|
+| `↑`/`↓` | Navigate the table            |
+| `Enter` | Open action menu              |
+| `s`     | Cycle sort mode               |
+| `r`     | Refresh the list              |
+| `Esc`   | Close action menu / back      |
 
-Le tableau supporte le scroll si la liste dépasse la hauteur disponible.
+The table supports scrolling if the list exceeds the available height.
 
-## Colonnes responsives
+## Responsive Columns
 
-Les largeurs des colonnes s'adaptent automatiquement à la taille du terminal. Chaque colonne utilise un pourcentage de la largeur disponible :
+Column widths adapt automatically to the terminal size. Each column uses a percentage of the available width:
 
-- NAME : 20%
-- IMAGE : 25%
-- STATE : 10%
-- STATUS : 25%
-- PORTS : 15%
+- NAME: 20%
+- IMAGE: 25%
+- STATE: 10%
+- STATUS: 25%
+- PORTS: 15%
 
-## États
+## States
 
-| État         | Affichage                              |
-|--------------|----------------------------------------|
-| Chargement   | Spinner animé + "Chargement des containers..." |
-| Données OK   | Tableau complet avec compteur          |
-| Erreur       | Bandeau rouge avec le message d'erreur |
+| State        | Display                                          |
+|--------------|--------------------------------------------------|
+| Loading      | Animated spinner + "Loading containers..."       |
+| Data OK      | Full table with counter                          |
+| Error        | Red banner with error message                    |
 
-## Requête GraphQL utilisée
+## GraphQL Query Used
 
 ```graphql
 query {
   docker {
     containers {
-      id name image state status
+      id name image state status autostart
       ports { privatePort publicPort type }
       networks { networkId }
+      updateAvailable
     }
   }
 }
 ```
 
-## Fichiers concernés
+## Related Files
 
-- `internal/tui/docker/docker.go` — Modèle Bubbletea, table Bubbles, formatage
-- `internal/tui/docker/docker_test.go` — Tests unitaires (9 tests)
-- `internal/api/queries.go` — Requête GraphQL (`queryContainers`)
+- `internal/tui/docker/docker.go` — Bubbletea model, Bubbles table, formatting
+- `internal/tui/docker/docker_test.go` — Unit tests
+- `internal/api/queries.go` — GraphQL query (`queryContainers`)

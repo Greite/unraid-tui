@@ -1,15 +1,15 @@
-# Contribuer a unraid-tui
+# Contributing to unraid-tui
 
-Merci de votre interet pour ce projet ! Ce guide vous explique comment contribuer.
+Thank you for your interest in this project! This guide explains how to contribute.
 
-## Prerequis
+## Prerequisites
 
 - [Go 1.22+](https://go.dev/dl/)
 - [GNU Make](https://www.gnu.org/software/make/)
-- (Optionnel) [GoReleaser](https://goreleaser.com/) pour tester les releases
-- (Optionnel) [GitHub CLI](https://cli.github.com/) pour les PRs
+- (Optional) [GoReleaser](https://goreleaser.com/) to test releases
+- (Optional) [GitHub CLI](https://cli.github.com/) for PRs
 
-## Mise en place
+## Setup
 
 ```bash
 git clone https://github.com/Greite/unraid-tui.git
@@ -18,140 +18,162 @@ make build
 make test
 ```
 
-Si le build et les tests passent, vous etes pret.
+If the build and tests pass, you are ready to go.
 
-## Workflow de developpement
+## Development workflow
 
-### 1. Creer une branche
+### 1. Create a branch
 
 ```bash
-git checkout -b feat/ma-feature
+git checkout -b feat/my-feature
 ```
 
-Conventions de nommage :
+Branch naming conventions:
 
-| Prefixe    | Usage                     |
-|------------|---------------------------|
-| `feat/`    | Nouvelle fonctionnalite   |
-| `fix/`     | Correction de bug         |
-| `refactor/`| Refactoring               |
-| `docs/`    | Documentation uniquement  |
-| `test/`    | Ajout/modification de tests|
+| Prefix     | Usage                |
+|------------|----------------------|
+| `feat/`    | New feature          |
+| `fix/`     | Bug fix              |
+| `refactor/`| Refactoring          |
+| `docs/`    | Documentation only   |
+| `test/`    | Add/modify tests     |
 
-### 2. Developper
+### 2. Develop
 
 ```bash
-# Lancer les tests en continu pendant le dev
+# Run tests continuously during development
 make test
 
-# Verifier que le code compile
+# Verify the code compiles
 make build
 
-# Lancer le linter
+# Run the linter
 make lint
 ```
 
-### 3. Committer
+Configuration is stored at `~/.unraid-tui/config.yaml`.
 
-Messages de commit en anglais, au present imperatif :
+### 3. Commit
+
+Commit messages must be in English, using the present imperative tense:
 
 ```bash
-# Bon
+# Good
 git commit -m "add VM monitoring page"
 git commit -m "fix container port display when host port is 0"
 
-# Mauvais
+# Bad
 git commit -m "Added VM page"
 git commit -m "WIP"
 git commit -m "fix stuff"
 ```
 
-### 4. Ouvrir une PR
+### 4. Open a PR
 
 ```bash
-git push -u origin feat/ma-feature
+git push -u origin feat/my-feature
 gh pr create --title "Add VM monitoring page" --body "Description..."
 ```
 
-## Structure du projet
+## Project structure
 
 ```
-cmd/                     → Point d'entree Cobra
-internal/api/            → Client GraphQL (interface + HTTP)
-internal/config/         → Configuration Viper
-internal/model/          → Types domaine
-internal/tui/            → App Bubbletea (routeur)
-internal/tui/common/     → Styles, messages, helpers partages
-internal/tui/dashboard/  → Page dashboard
-internal/tui/docker/     → Page Docker
-internal/tui/onboarding/ → Assistant de configuration
+cmd/                        -> Cobra entry point
+internal/api/               -> GraphQL client (interface + HTTP)
+internal/config/            -> Viper configuration
+internal/i18n/              -> Internationalization (i18n) system
+internal/model/             -> Domain types
+internal/tui/               -> Bubbletea app (router)
+internal/tui/common/        -> Shared styles, messages, helpers
+internal/tui/dashboard/     -> Dashboard page
+internal/tui/docker/        -> Docker page
+internal/tui/vms/           -> VMs page
+internal/tui/notifications/ -> Notifications page
+internal/tui/shares/        -> Shares page
+internal/tui/onboarding/    -> Configuration wizard
 ```
 
-## Ajouter une nouvelle page TUI
+## Adding a new TUI page
 
-1. Creer un package dans `internal/tui/<nom>/`
-2. Implementer un `Model` avec `Init()`, `Update()`, `View()` (pattern Bubbletea)
-3. Importer les styles et messages depuis `internal/tui/common/` (jamais depuis `internal/tui/` directement pour eviter les cycles d'import)
-4. Ajouter la page dans le routeur `internal/tui/app.go`
-5. Ajouter les requetes GraphQL dans `internal/api/queries.go` si necessaire
-6. Ecrire les tests
+1. Create a package in `internal/tui/<name>/`
+2. Implement a `Model` with `Init()`, `Update()`, `View()` (Bubbletea pattern)
+3. Import styles and messages from `internal/tui/common/` (never from `internal/tui/` directly to avoid import cycles)
+4. Add the page to the router in `internal/tui/app.go`
+5. Add GraphQL queries in `internal/api/queries.go` if needed
+6. Add all user-facing strings to the i18n system (see below)
+7. Write tests
 
-## Ajouter une requete API
+## Internationalization (i18n)
 
-1. Ajouter la requete GraphQL dans `internal/api/queries.go`
-2. Ajouter les types de reponse dans `internal/api/types.go` avec une methode `toDomain()`
-3. Ajouter les types domaine dans `internal/model/model.go`
-4. Ajouter la methode dans l'interface `UnraidClient` (`internal/api/client.go`)
-5. Implementer la methode dans `httpClient`
-6. Ajouter la methode dans `MockClient` (`internal/api/mock.go`)
-7. Tester avec `httptest` dans `internal/api/client_test.go`
+The project uses an i18n system located in `internal/i18n/`. Every user-facing string displayed in the TUI must go through this system.
+
+When adding new strings:
+
+1. Add the string key and its English translation in `internal/i18n/`
+2. Provide translations for all supported languages
+3. Tests use English strings (the default language), so always ensure the English translation is present
+
+## Adding an API query
+
+1. Add the GraphQL query in `internal/api/queries.go`
+2. Add response types in `internal/api/types.go` with a `toDomain()` method
+3. Add domain types in `internal/model/model.go`
+4. Add the method to the `UnraidClient` interface (`internal/api/client.go`)
+5. Implement the method in `httpClient`
+6. Add the method to `MockClient` (`internal/api/mock.go`)
+7. Test with `httptest` in `internal/api/client_test.go`
+
+## Multi-server support
+
+The project supports connecting to multiple Unraid servers. When working on features, keep in mind that all API calls and state management must handle the multi-server context. Server configuration is managed in `~/.unraid-tui/config.yaml`.
 
 ## Tests
 
-Les tests sont obligatoires pour toute contribution.
+Tests are mandatory for every contribution.
 
 ```bash
-make test          # Lancer les tests
-make test-verbose  # Avec detail
-make test-cover    # Avec couverture
+make test          # Run tests
+make test-verbose  # With verbose output
+make test-cover    # With coverage
 ```
 
-### Regles
+### Rules
 
-- Utiliser le package `testing` standard (pas de framework externe)
-- Mocker l'API avec `httptest.NewServer` pour les tests client
-- Utiliser `api.MockClient` pour les tests TUI
-- Tester le modele Bubbletea (Update/View), pas le rendu terminal
-- Chaque nouvelle feature doit etre accompagnee de tests
+- Use the standard `testing` package (no external framework)
+- Mock the API with `httptest.NewServer` for client tests
+- Use `api.MockClient` for TUI tests
+- Test the Bubbletea model (Update/View), not the terminal rendering
+- Tests use English strings (the default language)
+- Every new feature must include tests
 
-### Lancer un test specifique
+### Run a specific test
 
 ```bash
-go test -v -run TestNomDuTest ./internal/tui/docker/
+go test -v -run TestMyTestName ./internal/tui/docker/
 ```
 
-## Conventions de code
+## Code conventions
 
-- **Import paths Charmbracelet v2** : `charm.land/bubbletea/v2`, `charm.land/lipgloss/v2`, `charm.land/bubbles/v2`
-- **Bubbletea v2** :
-  - `View()` retourne `tea.View`, pas `string`
-  - Pas de `tea.WithAltScreen()` — utiliser `v.AltScreen = true` dans la View
-  - Spinner : utiliser `m.spinner.Tick` comme Cmd initial (pas de `Init()`)
-- **Pas de cycles d'import** : les sous-packages TUI importent `tui/common`, jamais `tui`
-- **Interface `UnraidClient`** : tout acces API passe par cette interface
-- Formater le code avec `gofmt` (applique automatiquement par Go)
+- **Charmbracelet v2 import paths**: `charm.land/bubbletea/v2`, `charm.land/lipgloss/v2`, `charm.land/bubbles/v2`
+- **Bubbletea v2**:
+  - `View()` returns `tea.View`, not `string`
+  - No `tea.WithAltScreen()` -- use `v.AltScreen = true` in the View
+  - Spinner: use `m.spinner.Tick` as the initial Cmd (not via `Init()`)
+- **No import cycles**: TUI sub-packages import `tui/common`, never `tui`
+- **`UnraidClient` interface**: all API access goes through this interface
+- Format code with `gofmt` (applied automatically by Go)
 
 ## Documentation
 
-- Documenter les nouvelles features dans `docs/`
-- Mettre a jour le `README.md` si la feature est visible par l'utilisateur
-- Mettre a jour `CLAUDE.md` si la contribution change l'architecture ou les conventions
+- Document new features in `docs/`
+- Update `README.md` if the feature is user-facing
+- Update `CLAUDE.md` if the contribution changes architecture or conventions
 
-## Signaler un bug
+## Reporting a bug
 
-Ouvrir une issue sur [GitHub](https://github.com/Greite/unraid-tui/issues) avec :
+Open an issue on [GitHub](https://github.com/Greite/unraid-tui/issues) with:
 
-- La version (`unraid-tui version`)
-- L'OS et l'architecture
-- Les etapes pour reproduire
-- Le comportement attendu vs observe
+- The version (`unraid-tui version`)
+- Your OS and architecture
+- Steps to reproduce
+- Expected vs observed behavior

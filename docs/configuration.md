@@ -1,48 +1,70 @@
 # Configuration
 
-## Fichier de configuration
+## Configuration File
 
-L'application cherche un fichier `~/.unraid-tui/config.yaml` dans le répertoire home de l'utilisateur.
+The application looks for a configuration file at `~/.unraid-tui/config.yaml` in the user's home directory.
 
 ### Format
 
 ```yaml
-server_url: "http://192.168.1.100:3001"
-api_key: "votre-clé-api-unraid"
+servers:
+  - name: "tower"
+    url: "http://192.168.1.100"
+  - name: "backup"
+    url: "http://192.168.1.200"
+
+language: "en"
 ```
 
-### Paramètres
+API keys are **not** stored in the configuration file. They are stored securely in the system keychain (macOS Keychain, Linux secret-service, Windows Credential Manager), keyed by server name.
 
-| Paramètre    | Requis | Description                                      |
-|--------------|--------|--------------------------------------------------|
-| `server_url` | Oui    | URL du serveur Unraid (incluant le port)         |
-| `api_key`    | Oui    | Clé API pour l'authentification Bearer           |
+### Parameters
 
-## Variables d'environnement
+| Parameter  | Required | Description                                           |
+|------------|----------|-------------------------------------------------------|
+| `servers`  | Yes      | List of named Unraid servers                          |
+| `name`     | Yes      | Friendly name for the server                          |
+| `url`      | Yes      | URL of the Unraid server (including port)             |
+| `language` | No       | UI language (`en` or `fr`). Defaults to `en`.         |
 
-Chaque paramètre peut être surchargé par une variable d'environnement préfixée `UNRAID_` :
+### Multi-Server Support
 
-| Variable              | Surcharge      |
-|-----------------------|----------------|
-| `UNRAID_SERVER_URL`   | `server_url`   |
-| `UNRAID_API_KEY`      | `api_key`      |
+The configuration supports multiple named servers. Use `Ctrl+S` in the TUI to switch between configured servers. Each server has its own API key stored independently in the system keychain.
 
-Les variables d'environnement ont priorité sur le fichier de configuration.
+## Environment Variables
 
-### Exemple
+Each parameter can be overridden by an environment variable prefixed with `UNRAID_`:
+
+| Variable              | Overrides            |
+|-----------------------|----------------------|
+| `UNRAID_SERVER_URL`   | Primary server URL   |
+| `UNRAID_API_KEY`      | Primary server key   |
+
+Environment variables take priority over the configuration file.
+
+### Example
 
 ```bash
-export UNRAID_SERVER_URL="http://10.0.0.5:3001"
-export UNRAID_API_KEY="ma-clé-secrète"
+export UNRAID_SERVER_URL="http://10.0.0.5"
+export UNRAID_API_KEY="my-secret-key"
 unraid-tui
 ```
 
-## Obtenir une clé API
+## API Key Storage
 
-1. Ouvrir l'interface web Unraid
-2. Aller dans **Settings → Management Access → Developer Options**
-3. Ouvrir Apollo GraphQL Studio
-4. Créer une clé API via la mutation GraphQL :
+API keys are stored in the system keychain for security. During onboarding, the key is saved to the keychain automatically. You can also manage keys manually:
+
+```bash
+# The application handles keychain storage transparently
+# Keys are stored under the service name "unraid-tui" with the server name as account
+```
+
+## Obtaining an API Key
+
+1. Open the Unraid web interface
+2. Go to **Settings > Management Access > Developer Options**
+3. Open Apollo GraphQL Studio
+4. Create an API key via the GraphQL mutation:
 
 ```graphql
 mutation {
@@ -53,7 +75,10 @@ mutation {
       roles: [VIEWER]
       permissions: [
         { resource: INFO, actions: [READ_ANY] }
-        { resource: DOCKER, actions: [READ_ANY] }
+        { resource: DOCKER, actions: [READ_ANY, WRITE_ANY] }
+        { resource: VMS, actions: [READ_ANY, WRITE_ANY] }
+        { resource: SHARES, actions: [READ_ANY] }
+        { resource: NOTIFICATIONS, actions: [READ_ANY, WRITE_ANY] }
       ]
     }) {
       key
@@ -62,13 +87,22 @@ mutation {
 }
 ```
 
-5. Copier la clé retournée dans `~/.unraid-tui/config.yaml`
+5. The key will be stored in your system keychain during onboarding
+
+## Internationalization (i18n)
+
+The application supports multiple languages:
+
+- **English** (`en`) — Default
+- **French** (`fr`)
+
+Switch language at any time using `Ctrl+L` in the TUI, or set it in the configuration file.
 
 ## Validation
 
-Au lancement, l'application vérifie que `server_url` et `api_key` sont définis. Si l'un des deux manque, un message d'erreur indique la source attendue (fichier ou variable d'environnement).
+At startup, the application verifies that at least one server is configured with a URL and that the corresponding API key exists in the keychain. If anything is missing, the onboarding wizard is launched.
 
-## Fichiers concernés
+## Related Files
 
-- `internal/config/config.go` — Chargement et validation
-- `internal/config/config_test.go` — Tests (fichier, env vars, override)
+- `internal/config/config.go` — Loading and validation
+- `internal/config/config_test.go` — Tests (file, env vars, override)
