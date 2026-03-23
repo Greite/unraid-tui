@@ -56,16 +56,25 @@ type coreVersionsPayload struct {
 }
 
 type devicesPayload struct {
-	GPU []devicePayload `json:"gpu"`
-	PCI []devicePayload `json:"pci"`
-	USB []devicePayload `json:"usb"`
+	GPU []gpuPayload `json:"gpu"`
+	PCI []pciPayload `json:"pci"`
+	USB []usbPayload `json:"usb"`
 }
 
-type devicePayload struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-	Vendor string `json:"vendor"`
-	Model  string `json:"model"`
+type gpuPayload struct {
+	ID         string `json:"id"`
+	VendorName string `json:"vendorname"`
+}
+
+type pciPayload struct {
+	ID          string `json:"id"`
+	VendorName  string `json:"vendorname"`
+	ProductName string `json:"productname"`
+}
+
+type usbPayload struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 type infoMemPayload struct {
@@ -133,9 +142,9 @@ func (p *systemInfoExtraPayload) applyTo(info *model.SystemInfo) {
 	}
 	if p.Devices != nil {
 		info.Hardware = model.HardwareInfo{
-			GPUs: devicesToDomain(p.Devices.GPU),
-			PCIs: devicesToDomain(p.Devices.PCI),
-			USBs: devicesToDomain(p.Devices.USB),
+			GPUs: gpusToDomain(p.Devices.GPU),
+			PCIs: pcisToDomain(p.Devices.PCI),
+			USBs: usbsToDomain(p.Devices.USB),
 		}
 	}
 	if p.Memory != nil {
@@ -148,10 +157,26 @@ func (p *systemInfoExtraPayload) applyTo(info *model.SystemInfo) {
 	}
 }
 
-func devicesToDomain(payloads []devicePayload) []model.DeviceInfo {
+func gpusToDomain(payloads []gpuPayload) []model.DeviceInfo {
 	devs := make([]model.DeviceInfo, len(payloads))
 	for i, p := range payloads {
-		devs[i] = model.DeviceInfo{ID: p.ID, Name: p.Name, Vendor: p.Vendor, Model: p.Model}
+		devs[i] = model.DeviceInfo{ID: p.ID, Name: p.VendorName, Vendor: p.VendorName}
+	}
+	return devs
+}
+
+func pcisToDomain(payloads []pciPayload) []model.DeviceInfo {
+	devs := make([]model.DeviceInfo, len(payloads))
+	for i, p := range payloads {
+		devs[i] = model.DeviceInfo{ID: p.ID, Name: p.ProductName, Vendor: p.VendorName, Model: p.ProductName}
+	}
+	return devs
+}
+
+func usbsToDomain(payloads []usbPayload) []model.DeviceInfo {
+	devs := make([]model.DeviceInfo, len(payloads))
+	for i, p := range payloads {
+		devs[i] = model.DeviceInfo{ID: p.ID, Name: p.Name}
 	}
 	return devs
 }

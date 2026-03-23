@@ -33,9 +33,9 @@ const querySystemInfoExtra = `query {
 			}
 		}
 		devices {
-			gpu { id name vendor model }
-			pci { id name vendor model }
-			usb { id name vendor model }
+			gpu { id vendorname }
+			pci { id vendorname productname }
+			usb { id name }
 		}
 		memory {
 			layout {

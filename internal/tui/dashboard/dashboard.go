@@ -141,27 +141,19 @@ func (m Model) View() string {
 
 	row1 := lipgloss.JoinHorizontal(lipgloss.Top, sysCard, " ", cpuCard, " ", memCard, " ", netCard)
 
-	// Row 2: CPU cores + Disks
+	// Row 2: CPU cores + Hardware
 	cpuCoresPanel := m.renderCPUCoresPanel()
-	diskPanel := m.renderDiskPanel()
-
-	row2 := lipgloss.JoinHorizontal(lipgloss.Top, cpuCoresPanel, " ", diskPanel)
-
 	hwPanel := m.renderHardwarePanel()
+
+	row2 := lipgloss.JoinHorizontal(lipgloss.Top, cpuCoresPanel, " ", hwPanel)
+
+	// Row 3: Disks + Parity
+	diskPanel := m.renderDiskPanel()
 	parityPanel := m.renderParityHistoryPanel()
 
-	result := errLine + "\n" + row1 + "\n\n" + row2
-	if hwPanel != "" || parityPanel != "" {
-		row3Parts := []string{}
-		if hwPanel != "" {
-			row3Parts = append(row3Parts, hwPanel)
-		}
-		if parityPanel != "" {
-			row3Parts = append(row3Parts, parityPanel)
-		}
-		result += "\n\n" + lipgloss.JoinHorizontal(lipgloss.Top, strings.Join(row3Parts, " "))
-	}
-	result += "\n"
+	row3 := lipgloss.JoinHorizontal(lipgloss.Top, diskPanel, " ", parityPanel)
+
+	result := errLine + "\n" + row1 + "\n\n" + row2 + "\n\n" + row3 + "\n"
 
 	// Apply scroll
 	lines := strings.Split(result, "\n")

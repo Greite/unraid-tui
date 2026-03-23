@@ -83,7 +83,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case common.VMsMsg:
 		m.loading = false
 		if msg.Err != nil {
-			slog.Error("VMs fetch failed", "error", msg.Err)
+			slog.Warn("VMs fetch failed", "error", msg.Err)
 			m.err = msg.Err
 			return m, nil
 		}
