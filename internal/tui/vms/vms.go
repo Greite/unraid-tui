@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	tea "charm.land/bubbletea/v2"
 	"charm.land/bubbles/v2/spinner"
+	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/Greite/unraid-tui/internal/api"
 	"github.com/Greite/unraid-tui/internal/i18n"
@@ -201,7 +201,9 @@ func stateIcon(state string) string {
 type vmActionMsg struct{ Err error }
 
 func (m Model) toggleStartStop() tea.Cmd {
-	if m.cursor >= len(m.vms) { return nil }
+	if m.cursor >= len(m.vms) {
+		return nil
+	}
 	v := m.vms[m.cursor]
 	id, client := v.ID, m.client
 	lower := strings.ToLower(v.State)
@@ -212,7 +214,9 @@ func (m Model) toggleStartStop() tea.Cmd {
 }
 
 func (m Model) togglePause() tea.Cmd {
-	if m.cursor >= len(m.vms) { return nil }
+	if m.cursor >= len(m.vms) {
+		return nil
+	}
 	v := m.vms[m.cursor]
 	id, client := v.ID, m.client
 	lower := strings.ToLower(v.State)
@@ -226,14 +230,18 @@ func (m Model) togglePause() tea.Cmd {
 }
 
 func (m Model) rebootVM() tea.Cmd {
-	if m.cursor >= len(m.vms) { return nil }
+	if m.cursor >= len(m.vms) {
+		return nil
+	}
 	v := m.vms[m.cursor]
 	id, client := v.ID, m.client
 	return func() tea.Msg { return vmActionMsg{client.RebootVM(context.Background(), id)} }
 }
 
 func (m Model) forceStopVM() tea.Cmd {
-	if m.cursor >= len(m.vms) { return nil }
+	if m.cursor >= len(m.vms) {
+		return nil
+	}
 	v := m.vms[m.cursor]
 	id, client := v.ID, m.client
 	return func() tea.Msg { return vmActionMsg{client.ForceStopVM(context.Background(), id)} }

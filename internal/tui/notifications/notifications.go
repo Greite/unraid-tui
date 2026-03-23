@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	tea "charm.land/bubbletea/v2"
 	"charm.land/bubbles/v2/spinner"
+	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/Greite/unraid-tui/internal/api"
 	"github.com/Greite/unraid-tui/internal/i18n"
@@ -181,7 +181,9 @@ func (m Model) visibleRows() int {
 type notifActionMsg struct{ Err error }
 
 func (m Model) archiveSelected() tea.Cmd {
-	if m.cursor >= len(m.notifications) { return nil }
+	if m.cursor >= len(m.notifications) {
+		return nil
+	}
 	n := m.notifications[m.cursor]
 	id, client := n.ID, m.client
 	return func() tea.Msg {

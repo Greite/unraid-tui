@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	tea "charm.land/bubbletea/v2"
 	"charm.land/bubbles/v2/spinner"
+	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/Greite/unraid-tui/internal/api"
 	"github.com/Greite/unraid-tui/internal/i18n"

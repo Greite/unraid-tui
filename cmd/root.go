@@ -58,7 +58,6 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-
 var serversCmd = &cobra.Command{
 	Use:   "servers",
 	Short: "List configured servers",

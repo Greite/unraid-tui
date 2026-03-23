@@ -30,16 +30,16 @@ type serverSwitchedMsg struct {
 }
 
 type Model struct {
-	activePage      common.Page
-	dashboard       dashboard.Model
-	docker          docker.Model
-	vms             vms.Model
-	notifications   notifications.Model
-	shares          shares.Model
-	client          api.UnraidClient
-	notifOverview   *model.NotificationOverview
-	width           int
-	height          int
+	activePage    common.Page
+	dashboard     dashboard.Model
+	docker        docker.Model
+	vms           vms.Model
+	notifications notifications.Model
+	shares        shares.Model
+	client        api.UnraidClient
+	notifOverview *model.NotificationOverview
+	width         int
+	height        int
 	// Server selector
 	showServerPicker bool
 	serverList       []config.ServerEntry
@@ -258,16 +258,16 @@ func (m Model) View() tea.View {
 		content = m.renderServerPicker()
 	} else {
 		switch m.activePage {
-	case common.PageDashboard:
-		content = m.dashboard.View()
-	case common.PageDocker:
-		content = m.docker.View()
-	case common.PageVMs:
-		content = m.vms.View()
-	case common.PageNotifications:
-		content = m.notifications.View()
-	case common.PageShares:
-		content = m.shares.View()
+		case common.PageDashboard:
+			content = m.dashboard.View()
+		case common.PageDocker:
+			content = m.docker.View()
+		case common.PageVMs:
+			content = m.vms.View()
+		case common.PageNotifications:
+			content = m.notifications.View()
+		case common.PageShares:
+			content = m.shares.View()
 		}
 	}
 
@@ -361,7 +361,7 @@ func (m Model) renderServerPicker() string {
 	s.WriteString("\n")
 
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(common.ColorPrimary)
-	s.WriteString(titleStyle.Render("  " + i18n.T("server_picker_title")) + "\n\n")
+	s.WriteString(titleStyle.Render("  "+i18n.T("server_picker_title")) + "\n\n")
 
 	def := config.DefaultServer()
 	selectedStyle := lipgloss.NewStyle().

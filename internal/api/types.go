@@ -80,10 +80,10 @@ type ramLayoutPayload struct {
 }
 
 type cpuPayload struct {
-	Manufacturer string             `json:"manufacturer"`
-	Brand        string             `json:"brand"`
-	Cores        int                `json:"cores"`
-	Threads      int                `json:"threads"`
+	Manufacturer string              `json:"manufacturer"`
+	Brand        string              `json:"brand"`
+	Cores        int                 `json:"cores"`
+	Threads      int                 `json:"threads"`
 	Packages     *cpuPackagesPayload `json:"packages"`
 }
 
@@ -259,12 +259,12 @@ type containerStatsDockerPayload struct {
 }
 
 type containerStatsPayload struct {
-	ID         string  `json:"id"`
+	ID         string   `json:"id"`
 	Names      []string `json:"names"`
-	State      string  `json:"state"`
-	CPUPercent float64 `json:"cpuPercent"`
-	MemUsage   uint64  `json:"memUsage"`
-	MemPercent float64 `json:"memPercent"`
+	State      string   `json:"state"`
+	CPUPercent float64  `json:"cpuPercent"`
+	MemUsage   uint64   `json:"memUsage"`
+	MemPercent float64  `json:"memPercent"`
 }
 
 // Share response types.
@@ -308,9 +308,9 @@ type arrayStateData struct {
 }
 
 type arrayStatePayload struct {
-	State             string                `json:"state"`
-	Capacity          arrayCapacityPayload  `json:"capacity"`
-	ParityCheckStatus parityStatusPayload   `json:"parityCheckStatus"`
+	State             string               `json:"state"`
+	Capacity          arrayCapacityPayload `json:"capacity"`
+	ParityCheckStatus parityStatusPayload  `json:"parityCheckStatus"`
 }
 
 type arrayCapacityPayload struct {
@@ -503,8 +503,8 @@ type dockerData struct {
 }
 
 type dockerPayload struct {
-	Containers           []containerPayload        `json:"containers"`
-	ContainerUpdateStatuses []updateStatusPayload  `json:"containerUpdateStatuses"`
+	Containers              []containerPayload    `json:"containers"`
+	ContainerUpdateStatuses []updateStatusPayload `json:"containerUpdateStatuses"`
 }
 
 type updateStatusPayload struct {
@@ -519,8 +519,8 @@ type containerPayload struct {
 	State     string        `json:"state"`
 	Status    string        `json:"status"`
 	AutoStart bool          `json:"autoStart"`
-	Ports []portPayload `json:"ports"`
-	WebUI string        `json:"webUiUrl"`
+	Ports     []portPayload `json:"ports"`
+	WebUI     string        `json:"webUiUrl"`
 }
 
 type portPayload struct {

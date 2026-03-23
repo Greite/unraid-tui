@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	tea "charm.land/bubbletea/v2"
 	"charm.land/bubbles/v2/spinner"
+	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/Greite/unraid-tui/internal/api"
 	"github.com/Greite/unraid-tui/internal/i18n"
@@ -285,7 +285,7 @@ func (m Model) renderCPUCoresPanel() string {
 	var content string
 	if m.metrics != nil && len(m.metrics.CPUCores) > 0 {
 		cols := 2
-		coreBarW := (w - 10) / cols - 14
+		coreBarW := (w-10)/cols - 14
 		if coreBarW < 3 {
 			coreBarW = 3
 		}
@@ -470,7 +470,6 @@ func (m Model) fetchSystemInfo() tea.Msg {
 	}
 	return common.SystemInfoMsg{Info: info, Err: err}
 }
-
 
 func (m Model) fetchArrayInfo() tea.Msg {
 	info, err := m.client.GetArrayInfo(context.Background())
