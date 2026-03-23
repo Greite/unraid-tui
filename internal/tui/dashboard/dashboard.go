@@ -17,19 +17,21 @@ import (
 )
 
 type Model struct {
-	client     api.UnraidClient
-	systemInfo *model.SystemInfo
-	metrics    *model.SystemMetrics
-	arrayInfo  *model.ArrayInfo
-	disks      []model.Disk
-	network    []model.NetworkAccess
-	arrayErr   error
-	spinner    spinner.Model
-	loading    bool
-	err        error
-	width      int
-	height     int
-	scroll     int
+	client       api.UnraidClient
+	systemInfo   *model.SystemInfo
+	metrics      *model.SystemMetrics
+	arrayInfo    *model.ArrayInfo
+	disks        []model.Disk
+	network      []model.NetworkAccess
+	arrayErr     error
+	spinner      spinner.Model
+	loading      bool
+	err          error
+	width        int
+	height       int
+	scroll       int
+	cpuTempAlert bool // true if already alerted for current high temp
+	diskAlert    bool // true if already alerted for current disk error
 }
 
 func New(client api.UnraidClient) Model {
@@ -81,6 +83,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 		m.systemInfo = msg.Info
 		m.err = nil
+		if msg.Info.CPU.Temp >= common.CPUTempAlertThreshold && !m.cpuTempAlert {
+			m.cpuTempAlert = true
+			slog.Warn("CPU temperature alert", "temp", msg.Info.CPU.Temp)
+			return m, common.Bell()
+		}
+		if msg.Info.CPU.Temp < common.CPUTempAlertThreshold {
+			m.cpuTempAlert = false
+		}
 
 	case common.SystemMetricsMsg:
 		if msg.Err != nil {
@@ -103,6 +113,15 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case common.DisksMsg:
 		if msg.Err == nil {
 			m.disks = msg.Disks
+			if !m.diskAlert {
+				for _, d := range msg.Disks {
+					if d.Status != "" && d.Status != "DISK_OK" {
+						m.diskAlert = true
+						slog.Warn("disk error detected", "disk", d.Name, "status", d.Status)
+						return m, common.Bell()
+					}
+				}
+			}
 		} else {
 			slog.Warn("disk fetch failed", "error", msg.Err)
 		}

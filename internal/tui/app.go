@@ -195,7 +195,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case common.NotificationsOverviewMsg:
 		if msg.Err == nil {
+			prevAlerts := 0
+			if m.notifOverview != nil {
+				prevAlerts = m.notifOverview.Alert
+			}
 			m.notifOverview = msg.Overview
+			if msg.Overview.Alert > prevAlerts {
+				slog.Warn("new alert notification", "count", msg.Overview.Alert)
+				return m, tea.Batch(m.scheduleNotifRefresh(), common.Bell())
+			}
 		} else {
 			slog.Warn("notification overview fetch failed", "error", msg.Err)
 		}

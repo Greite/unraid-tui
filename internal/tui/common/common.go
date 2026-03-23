@@ -3,6 +3,7 @@ package common
 import (
 	"time"
 
+	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/Greite/unraid-tui/internal/model"
 )
@@ -102,6 +103,14 @@ type TickMsg time.Time
 
 // Refresh interval for metrics polling.
 const RefreshInterval = 3 * time.Second
+
+// CPU temperature threshold for alerts (°C).
+const CPUTempAlertThreshold = 90.0
+
+// Bell emits a terminal bell sound.
+func Bell() tea.Cmd {
+	return tea.Printf("\a")
+}
 
 // Color palette.
 var (

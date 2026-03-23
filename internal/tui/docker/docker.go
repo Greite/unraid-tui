@@ -116,6 +116,7 @@ type Model struct {
 	logsOffset int
 	logsFollow bool
 	stats      string
+	prevStates map[string]string // container ID -> previous state
 	statusMsg  string
 }
 
@@ -258,11 +259,28 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			return m, nil
 		}
 		m.err = nil
+		// Detect container crashes
+		var crashed bool
+		if m.prevStates != nil {
+			for _, c := range msg.Containers {
+				if prev, ok := m.prevStates[c.ID]; ok && prev == "running" && c.State == "exited" {
+					slog.Warn("container crashed", "name", c.Name, "state", c.State)
+					crashed = true
+				}
+			}
+		}
+		m.prevStates = make(map[string]string)
+		for _, c := range msg.Containers {
+			m.prevStates[c.ID] = c.State
+		}
 		m.containers = msg.Containers
 		m.applySort()
 		m.cursor = 0
 		m.offset = 0
 		m.statusMsg = ""
+		if crashed {
+			return m, common.Bell()
+		}
 	}
 
 	var cmd tea.Cmd
