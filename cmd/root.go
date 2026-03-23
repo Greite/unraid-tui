@@ -100,7 +100,7 @@ var addServerCmd = &cobra.Command{
 func init() {
 	rootCmd.Version = fmt.Sprintf("%s (commit: %s, built: %s)", version, commit, date)
 	rootCmd.PersistentFlags().StringVar(&serverFlag, "server", "", "server name to connect to")
-	rootCmd.PersistentFlags().StringVar(&langFlag, "lang", "", "language (en, fr)")
+	rootCmd.PersistentFlags().StringVar(&langFlag, "lang", "", "language (en, fr, zh, hi, es, ar)")
 	rootCmd.AddCommand(serversCmd)
 	rootCmd.AddCommand(addServerCmd)
 }

@@ -399,6 +399,10 @@ var langOptions = []struct {
 }{
 	{"en", "English"},
 	{"fr", "Francais"},
+	{"zh", "中文"},
+	{"hi", "हिन्दी"},
+	{"es", "Espanol"},
+	{"ar", "العربية"},
 }
 
 func (m Model) updateLangPicker(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -430,7 +434,7 @@ func (m Model) renderLangPicker() string {
 	s.WriteString("\n")
 
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(common.ColorPrimary)
-	s.WriteString(titleStyle.Render("  Language / Langue") + "\n\n")
+	s.WriteString(titleStyle.Render("  Language / Langue / 语言 / भाषा / Idioma / اللغة") + "\n\n")
 
 	selectedStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#FFFFFF")).
