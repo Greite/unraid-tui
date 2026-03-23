@@ -101,8 +101,25 @@ func init() {
 	rootCmd.Version = fmt.Sprintf("%s (commit: %s, built: %s)", version, commit, date)
 	rootCmd.PersistentFlags().StringVar(&serverFlag, "server", "", "server name to connect to")
 	rootCmd.PersistentFlags().StringVar(&langFlag, "lang", "", "language (en, fr, zh, hi, es, ar)")
+
+	// Dynamic completion for --server flag
+	rootCmd.RegisterFlagCompletionFunc("server", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		servers := config.ListServers()
+		names := make([]string, 0, len(servers))
+		for _, s := range servers {
+			names = append(names, s.Name)
+		}
+		return names, cobra.ShellCompDirectiveNoFileComp
+	})
+
+	// Static completion for --lang flag
+	rootCmd.RegisterFlagCompletionFunc("lang", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return i18n.SupportedLanguages, cobra.ShellCompDirectiveNoFileComp
+	})
+
 	rootCmd.AddCommand(serversCmd)
 	rootCmd.AddCommand(addServerCmd)
+	rootCmd.AddCommand(completionCmd)
 }
 
 func runOnboarding() error {

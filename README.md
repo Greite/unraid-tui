@@ -290,6 +290,7 @@ goreleaser release --clean
 Detailed documentation for each feature is in the [`docs/`](docs/) directory:
 
 - [Configuration](docs/configuration.md)
+- [Shell Completion](docs/shell-completion.md)
 - [Onboarding](docs/onboarding.md)
 - [Dashboard](docs/dashboard.md)
 - [Docker](docs/docker.md)
