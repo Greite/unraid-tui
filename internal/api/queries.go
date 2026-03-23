@@ -128,6 +128,10 @@ const queryArrayState = `query {
 			status
 			progress
 			running
+			date
+			duration
+			speed
+			errors
 		}
 	}
 }`

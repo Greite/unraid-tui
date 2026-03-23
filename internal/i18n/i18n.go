@@ -68,6 +68,15 @@ var translations = map[string]map[string]string{
 	"paused":    {"en": "paused", "fr": "pause", "zh": "已暂停", "hi": "रुका हुआ", "es": "pausado", "ar": "متوقف مؤقتاً"},
 	"devices":   {"en": "devices", "fr": "peripheriques", "zh": "设备", "hi": "डिवाइस", "es": "dispositivos", "ar": "أجهزة"},
 
+	// === Parity History ===
+	"parity_history":    {"en": "Parity History", "fr": "Historique parite", "zh": "校验历史", "hi": "पैरिटी इतिहास", "es": "Historial de paridad", "ar": "سجل التماثل"},
+	"parity_date":       {"en": "Date", "fr": "Date", "zh": "日期", "hi": "तारीख", "es": "Fecha", "ar": "التاريخ"},
+	"parity_status":     {"en": "Status", "fr": "Statut", "zh": "状态", "hi": "स्थिति", "es": "Estado", "ar": "الحالة"},
+	"parity_duration":   {"en": "Duration", "fr": "Duree", "zh": "持续时间", "hi": "अवधि", "es": "Duracion", "ar": "المدة"},
+	"parity_speed":      {"en": "Speed", "fr": "Vitesse", "zh": "速度", "hi": "गति", "es": "Velocidad", "ar": "السرعة"},
+	"parity_errors":     {"en": "Errors", "fr": "Erreurs", "zh": "错误", "hi": "त्रुटियां", "es": "Errores", "ar": "الأخطاء"},
+	"no_parity_history": {"en": "No parity checks recorded", "fr": "Aucun check de parite enregistre", "zh": "无校验记录", "hi": "कोई पैरिटी जांच दर्ज नहीं", "es": "Sin verificaciones de paridad", "ar": "لا توجد سجلات تماثل"},
+
 	// === Docker ===
 	"containers":      {"en": "Containers", "fr": "Containers", "zh": "容器", "hi": "कंटेनर", "es": "Contenedores", "ar": "حاويات"},
 	"loading_docker":  {"en": "Loading containers...", "fr": "Chargement des containers...", "zh": "加载容器中...", "hi": "कंटेनर लोड हो रहे हैं...", "es": "Cargando contenedores...", "ar": "...جارٍ تحميل الحاويات"},

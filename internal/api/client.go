@@ -224,14 +224,22 @@ func (c *httpClient) GetArrayInfo(ctx context.Context) (*model.ArrayInfo, error)
 		return nil, fmt.Errorf("graphql: %s", result.Errors[0].Message)
 	}
 	a := result.Data.Array
+	kb := a.Capacity.Kilobytes
+	free, _ := kb.Free.Int64()
+	used, _ := kb.Used.Int64()
+	total, _ := kb.Total.Int64()
 	return &model.ArrayInfo{
 		State:          a.State,
-		Free:           a.Capacity.Kilobytes.Free * 1024,
-		Used:           a.Capacity.Kilobytes.Used * 1024,
-		Total:          a.Capacity.Kilobytes.Total * 1024,
+		Free:           uint64(free) * 1024,
+		Used:           uint64(used) * 1024,
+		Total:          uint64(total) * 1024,
 		ParityStatus:   a.ParityCheckStatus.Status,
 		ParityProgress: a.ParityCheckStatus.Progress,
 		ParityRunning:  a.ParityCheckStatus.Running,
+		ParityDate:     a.ParityCheckStatus.Date,
+		ParityDuration: a.ParityCheckStatus.Duration,
+		ParitySpeed:    a.ParityCheckStatus.Speed,
+		ParityErrors:   a.ParityCheckStatus.Errors,
 	}, nil
 }
 

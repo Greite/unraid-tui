@@ -22,6 +22,7 @@ type Model struct {
 	arrayInfo  *model.ArrayInfo
 	disks      []model.Disk
 	network    []model.NetworkAccess
+	arrayErr   error
 	spinner    spinner.Model
 	loading    bool
 	err        error
@@ -91,6 +92,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case common.ArrayInfoMsg:
 		if msg.Err == nil {
 			m.arrayInfo = msg.Info
+		} else {
+			m.arrayErr = msg.Err
 		}
 
 	case common.DisksMsg:
@@ -137,10 +140,18 @@ func (m Model) View() string {
 	row2 := lipgloss.JoinHorizontal(lipgloss.Top, cpuCoresPanel, " ", diskPanel)
 
 	hwPanel := m.renderHardwarePanel()
+	parityPanel := m.renderParityHistoryPanel()
 
 	result := errLine + "\n" + row1 + "\n\n" + row2
-	if hwPanel != "" {
-		result += "\n\n" + hwPanel
+	if hwPanel != "" || parityPanel != "" {
+		row3Parts := []string{}
+		if hwPanel != "" {
+			row3Parts = append(row3Parts, hwPanel)
+		}
+		if parityPanel != "" {
+			row3Parts = append(row3Parts, parityPanel)
+		}
+		result += "\n\n" + lipgloss.JoinHorizontal(lipgloss.Top, strings.Join(row3Parts, " "))
 	}
 	result += "\n"
 
@@ -385,7 +396,7 @@ func (m Model) renderHardwarePanel() string {
 		return ""
 	}
 
-	w := m.halfWidth()*2 + 1
+	w := m.halfWidth()
 	var content string
 
 	// RAM
@@ -436,6 +447,62 @@ func (m Model) renderHardwarePanel() string {
 
 	return common.StylePanel.Width(w).Render(
 		common.StyleTitle.Render(i18n.T("hardware")) + "\n" + content,
+	)
+}
+
+func (m Model) renderParityHistoryPanel() string {
+	w := m.halfWidth()
+	var content string
+
+	if m.arrayInfo == nil || m.arrayInfo.ParityDate == "" {
+		if m.arrayErr != nil {
+			content = "  " + common.StyleError.Render(m.arrayErr.Error()) + "\n"
+		} else {
+			content = "  " + common.StyleSubtle.Render(i18n.T("no_parity_history")) + "\n"
+		}
+		return common.StylePanel.Width(w).Render(
+			common.StyleTitle.Render(i18n.T("parity_history")) + "\n" + content,
+		)
+	}
+
+	a := m.arrayInfo
+
+	// Date
+	dateStr := a.ParityDate
+	if len(dateStr) >= 10 {
+		dateStr = dateStr[:10] // Keep YYYY-MM-DD
+	}
+	content += fmt.Sprintf("  %s:    %s\n", i18n.T("parity_date"), dateStr)
+
+	// Status
+	statusStyle := lipgloss.NewStyle().Foreground(common.ColorSuccess)
+	if a.ParityStatus != "COMPLETED" {
+		statusStyle = lipgloss.NewStyle().Foreground(common.ColorWarning)
+	}
+	content += fmt.Sprintf("  %s:  %s\n", i18n.T("parity_status"), statusStyle.Render(a.ParityStatus))
+
+	// Duration
+	if a.ParityDuration > 0 {
+		hours := a.ParityDuration / 3600
+		mins := (a.ParityDuration % 3600) / 60
+		content += fmt.Sprintf("  %s: %dh %dm\n", i18n.T("parity_duration"), hours, mins)
+	}
+
+	// Speed
+	if a.ParitySpeed != "" && a.ParitySpeed != "0" {
+		content += fmt.Sprintf("  %s:   %s MB/s\n", i18n.T("parity_speed"), a.ParitySpeed)
+	}
+
+	// Errors
+	errStr := fmt.Sprintf("%d", a.ParityErrors)
+	errStyle := lipgloss.NewStyle()
+	if a.ParityErrors > 0 {
+		errStyle = lipgloss.NewStyle().Foreground(common.ColorDanger).Bold(true)
+	}
+	content += fmt.Sprintf("  %s:  %s\n", i18n.T("parity_errors"), errStyle.Render(errStr))
+
+	return common.StylePanel.Width(w).Render(
+		common.StyleTitle.Render(i18n.T("parity_history")) + "\n" + content,
 	)
 }
 

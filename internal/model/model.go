@@ -52,6 +52,10 @@ type ArrayInfo struct {
 	ParityStatus   string
 	ParityProgress float64
 	ParityRunning  bool
+	ParityDate     string
+	ParityDuration int // seconds
+	ParitySpeed    string
+	ParityErrors   int
 }
 
 type ParityHistoryEntry struct {

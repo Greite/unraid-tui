@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"sort"
 	"strconv"
 	"strings"
@@ -318,15 +319,19 @@ type arrayCapacityPayload struct {
 }
 
 type arrayKBPayload struct {
-	Free  uint64 `json:"free"`
-	Used  uint64 `json:"used"`
-	Total uint64 `json:"total"`
+	Free  json.Number `json:"free"`
+	Used  json.Number `json:"used"`
+	Total json.Number `json:"total"`
 }
 
 type parityStatusPayload struct {
 	Status   string  `json:"status"`
 	Progress float64 `json:"progress"`
 	Running  bool    `json:"running"`
+	Date     string  `json:"date"`
+	Duration int     `json:"duration"`
+	Speed    string  `json:"speed"`
+	Errors   int     `json:"errors"`
 }
 
 // Notifications response types.
