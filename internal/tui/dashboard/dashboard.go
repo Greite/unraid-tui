@@ -1,9 +1,12 @@
 package dashboard
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log/slog"
+	"net/url"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -21,23 +24,29 @@ type parityActionMsg struct {
 	err    error
 }
 
+type powerActionMsg struct {
+	action string
+	err    error
+}
+
 type Model struct {
-	client       api.UnraidClient
-	systemInfo   *model.SystemInfo
-	metrics      *model.SystemMetrics
-	arrayInfo    *model.ArrayInfo
-	disks        []model.Disk
-	network      []model.NetworkAccess
-	arrayErr     error
-	spinner      spinner.Model
-	loading      bool
-	err          error
-	width        int
-	height       int
-	scroll       int
-	statusMsg    string
-	cpuTempAlert bool // true if already alerted for current high temp
-	diskAlert    bool // true if already alerted for current disk error
+	client        api.UnraidClient
+	systemInfo    *model.SystemInfo
+	metrics       *model.SystemMetrics
+	arrayInfo     *model.ArrayInfo
+	disks         []model.Disk
+	network       []model.NetworkAccess
+	arrayErr      error
+	spinner       spinner.Model
+	loading       bool
+	err           error
+	width         int
+	height        int
+	scroll        int
+	statusMsg     string
+	confirmAction string // "reboot" or "shutdown" when awaiting confirmation
+	cpuTempAlert  bool
+	diskAlert     bool
 }
 
 func New(client api.UnraidClient) Model {
@@ -69,6 +78,19 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.height = msg.Height
 
 	case tea.KeyPressMsg:
+		// Confirmation mode
+		if m.confirmAction != "" {
+			switch msg.String() {
+			case "enter":
+				action := m.confirmAction
+				m.confirmAction = ""
+				return m, m.execPowerAction(action)
+			default:
+				m.confirmAction = ""
+				m.statusMsg = ""
+			}
+			return m, nil
+		}
 		switch msg.String() {
 		case "up", "k":
 			if m.scroll > 0 {
@@ -82,6 +104,20 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			return m, m.parityAction()
 		case "x":
 			return m, m.cancelParity()
+		case "R":
+			m.confirmAction = "reboot"
+			m.statusMsg = i18n.T("confirm_reboot")
+		case "X":
+			m.confirmAction = "shutdown"
+			m.statusMsg = i18n.T("confirm_shutdown")
+		}
+
+	case powerActionMsg:
+		if msg.err != nil {
+			slog.Error("power action failed", "action", msg.action, "error", msg.err)
+			m.statusMsg = "✗ " + msg.action + ": " + msg.err.Error()
+		} else {
+			m.statusMsg = msg.action
 		}
 
 	case parityActionMsg:
@@ -204,7 +240,7 @@ func (m Model) View() string {
 			parityHint = "  │  p: " + i18n.T("parity_start")
 		}
 	}
-	hint := common.StyleSubtle.Render("  ↑/↓: " + i18n.T("scroll") + "  │  r: " + i18n.T("refresh") + parityHint)
+	hint := common.StyleSubtle.Render("  ↑/↓: " + i18n.T("scroll") + "  │  r: " + i18n.T("refresh") + parityHint + "  │  R: " + i18n.T("reboot_server") + "  │  X: " + i18n.T("shutdown_server"))
 	result := errLine + "\n" + row1 + "\n\n" + row2 + "\n\n" + row3 + "\n\n" + hint + "\n"
 
 	// Apply scroll
@@ -595,6 +631,43 @@ func (m *Model) cancelParity() tea.Cmd {
 		err := client.CancelParityCheck(context.Background())
 		return parityActionMsg{action: i18n.T("parity_cancel"), err: err}
 	}
+}
+
+func (m Model) execPowerAction(action string) tea.Cmd {
+	host := extractHost(m.client.ServerURL())
+	remoteCmd := "reboot"
+	statusMsg := i18n.T("server_rebooting")
+	if action == "shutdown" {
+		remoteCmd = "poweroff"
+		statusMsg = i18n.T("server_shutting_down")
+	}
+	return func() tea.Msg {
+		cmd := exec.Command("ssh",
+			"-o", "StrictHostKeyChecking=no",
+			"-o", "ConnectTimeout=5",
+			"root@"+host,
+			remoteCmd,
+		)
+		var stderr bytes.Buffer
+		cmd.Stderr = &stderr
+		err := cmd.Run()
+		if err != nil {
+			errMsg := strings.TrimSpace(stderr.String())
+			if errMsg == "" {
+				errMsg = err.Error()
+			}
+			return powerActionMsg{action: action, err: fmt.Errorf("%s", errMsg)}
+		}
+		return powerActionMsg{action: statusMsg}
+	}
+}
+
+func extractHost(serverURL string) string {
+	parsed, err := url.Parse(serverURL)
+	if err != nil {
+		return serverURL
+	}
+	return parsed.Hostname()
 }
 
 func truncate(s string, max int) string {
