@@ -56,6 +56,7 @@ type viewMode int
 const (
 	viewList viewMode = iota
 	viewLogs
+	viewStats
 )
 
 type colZone struct {
@@ -89,6 +90,13 @@ type ContainerActionMsg struct {
 
 type logsTickMsg struct{}
 
+type StatsMsg struct {
+	Output string
+	Err    error
+}
+
+type statsTickMsg struct{}
+
 type Model struct {
 	client     api.UnraidClient
 	containers []model.Container
@@ -107,6 +115,7 @@ type Model struct {
 	logsName   string
 	logsOffset int
 	logsFollow bool
+	stats      string
 	statusMsg  string
 }
 
@@ -135,6 +144,9 @@ func (m Model) Init() tea.Cmd {
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	if m.mode == viewLogs {
 		return m.updateLogs(msg)
+	}
+	if m.mode == viewStats {
+		return m.updateStats(msg)
 	}
 
 	switch msg := msg.(type) {
@@ -173,6 +185,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.toggleSort(sortAuto)
 		case "l":
 			return m, m.fetchLogs()
+		case "d":
+			return m, m.enterStats()
 		case "w":
 			m.openWebUI()
 		case "c":
@@ -316,10 +330,14 @@ func (m Model) updateLogs(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	if m.mode == viewLogs {
+	switch m.mode {
+	case viewLogs:
 		return m.viewLogs()
+	case viewStats:
+		return m.viewStats()
+	default:
+		return m.viewList()
 	}
-	return m.viewList()
 }
 
 func (m Model) viewLogs() string {
@@ -508,9 +526,95 @@ func (m Model) viewList() string {
 		}
 	}
 
-	s.WriteString("\n" + common.StyleSubtle.Render("  n/i/s/t/o/p: "+i18n.T("sort")+"  │  ↑/↓: "+i18n.T("navigate")+"  │  r: "+i18n.T("refresh")+"  │  U: "+i18n.T("update_all")) + "\n")
+	s.WriteString("\n" + common.StyleSubtle.Render("  n/i/s/t/o/p: "+i18n.T("sort")+"  │  ↑/↓: "+i18n.T("navigate")+"  │  r: "+i18n.T("refresh")+"  │  d: "+i18n.T("stats")+"  │  U: "+i18n.T("update_all")) + "\n")
 
 	return s.String()
+}
+
+// --- Stats view ---
+
+func (m *Model) enterStats() tea.Cmd {
+	m.mode = viewStats
+	m.stats = ""
+	host := extractHost(m.client.ServerURL())
+	return m.doFetchStats(host)
+}
+
+func (m Model) updateStats(msg tea.Msg) (Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+
+	case tea.KeyPressMsg:
+		switch msg.String() {
+		case "esc", "q":
+			m.mode = viewList
+			m.stats = ""
+			return m, nil
+		}
+
+	case StatsMsg:
+		if msg.Err != nil {
+			slog.Warn("stats fetch failed", "error", msg.Err)
+		} else {
+			m.stats = msg.Output
+		}
+		return m, m.scheduleStatsRefresh()
+
+	case statsTickMsg:
+		if m.mode == viewStats {
+			host := extractHost(m.client.ServerURL())
+			return m, m.doFetchStats(host)
+		}
+	}
+	return m, nil
+}
+
+func (m Model) viewStats() string {
+	var s strings.Builder
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(common.ColorPrimary)
+	s.WriteString("\n" + titleStyle.Render("  Container Stats") + "\n")
+	s.WriteString(common.StyleSubtle.Render("  "+strings.Repeat("─", 80)) + "\n\n")
+
+	if m.stats == "" {
+		s.WriteString("  " + i18n.T("loading") + "\n")
+	} else {
+		for _, line := range strings.Split(m.stats, "\n") {
+			if line != "" {
+				s.WriteString("  " + line + "\n")
+			}
+		}
+	}
+
+	s.WriteString("\n" + common.StyleSubtle.Render("  "+i18n.T("refresh")+": 2s  │  esc: "+i18n.T("back")) + "\n")
+	return s.String()
+}
+
+func (m Model) doFetchStats(host string) tea.Cmd {
+	return func() tea.Msg {
+		cmd := exec.Command("ssh",
+			"-o", "StrictHostKeyChecking=no",
+			"-o", "ConnectTimeout=5",
+			"root@"+host,
+			`docker stats --no-stream --format 'table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}\t{{.NetIO}}\t{{.BlockIO}}'`,
+		)
+		var stdout, stderr bytes.Buffer
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+		err := cmd.Run()
+		if err != nil {
+			return StatsMsg{Err: fmt.Errorf("ssh: %s", firstNonEmpty(stderr.String(), err.Error()))}
+		}
+		return StatsMsg{Output: stdout.String()}
+	}
+}
+
+func (m Model) scheduleStatsRefresh() tea.Cmd {
+	return tea.Tick(2*time.Second, func(_ time.Time) tea.Msg {
+		return statsTickMsg{}
+	})
 }
 
 // --- Actions ---

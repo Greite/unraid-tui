@@ -85,6 +85,7 @@ var translations = map[string]map[string]string{
 	"logs":            {"en": "logs", "fr": "logs", "zh": "日志", "hi": "लॉग", "es": "logs", "ar": "سجلات"},
 	"console":         {"en": "console", "fr": "console", "zh": "控制台", "hi": "कंसोल", "es": "consola", "ar": "وحدة التحكم"},
 	"webui":           {"en": "WebUI", "fr": "WebUI", "zh": "WebUI", "hi": "WebUI", "es": "WebUI", "ar": "WebUI"},
+	"stats":           {"en": "stats", "fr": "stats", "zh": "统计", "hi": "आंकड़े", "es": "stats", "ar": "إحصائيات"},
 	"start":           {"en": "start", "fr": "démarrer", "zh": "启动", "hi": "शुरू करें", "es": "iniciar", "ar": "تشغيل"},
 	"stop":            {"en": "stop", "fr": "arrêter", "zh": "停止", "hi": "रोकें", "es": "detener", "ar": "إيقاف"},
 	"pause":           {"en": "pause", "fr": "pause", "zh": "暂停", "hi": "रोकें", "es": "pausar", "ar": "إيقاف مؤقت"},
