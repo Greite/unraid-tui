@@ -5,3 +5,4 @@ coverage.html
 *.pen
 .claude/
 bruno/
+.grepai/
