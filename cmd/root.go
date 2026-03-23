@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"log/slog"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/spf13/cobra"
@@ -9,6 +10,7 @@ import (
 	"github.com/Greite/unraid-tui/internal/api"
 	"github.com/Greite/unraid-tui/internal/config"
 	"github.com/Greite/unraid-tui/internal/i18n"
+	"github.com/Greite/unraid-tui/internal/logging"
 	"github.com/Greite/unraid-tui/internal/tui"
 	"github.com/Greite/unraid-tui/internal/tui/onboarding"
 )
@@ -21,6 +23,7 @@ var (
 	serverFlag  string
 	langFlag    string
 	versionFlag bool
+	closeLog    func()
 )
 
 var rootCmd = &cobra.Command{
@@ -29,12 +32,21 @@ var rootCmd = &cobra.Command{
 	Short:   "Terminal UI for Unraid server management",
 	Long:    "A TUI application to monitor and manage your Unraid server from the terminal.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		closeLog = logging.Init(config.ConfigDir())
+		slog.Info("starting unraid-tui", "version", version, "commit", commit)
+
 		if langFlag != "" {
 			i18n.SetLang(langFlag)
 		} else if saved := config.GetLanguage(); saved != "" {
 			i18n.SetLang(saved)
 		} else {
 			i18n.DetectLang()
+		}
+	},
+	PersistentPostRun: func(cmd *cobra.Command, args []string) {
+		slog.Info("shutting down")
+		if closeLog != nil {
+			closeLog()
 		}
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -46,6 +58,7 @@ var rootCmd = &cobra.Command{
 
 		cfg, err := config.LoadServer(serverFlag)
 		if err != nil {
+			slog.Error("config load failed", "error", err)
 			return fmt.Errorf("configuration error: %w", err)
 		}
 

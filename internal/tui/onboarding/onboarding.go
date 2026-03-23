@@ -3,6 +3,7 @@ package onboarding
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -136,6 +137,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.step = stepAPIKeyInfo
 			return m, nil
 		}
+		slog.Warn("onboarding connection test failed", "error", msg.err)
 		m.err = msg.err
 		m.step = stepServerURL
 		m = m.focusCurrentInput()
@@ -147,6 +149,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.step = stepSaving
 			return m, m.saveConfig()
 		}
+		slog.Warn("onboarding API key test failed", "error", msg.err)
 		m.err = msg.err
 		m.step = stepAPIKey
 		m = m.focusCurrentInput()
@@ -154,6 +157,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case saveResultMsg:
 		if msg.err != nil {
+			slog.Error("onboarding config save failed", "error", msg.err)
 			m.err = msg.err
 			m.step = stepAPIKey
 			return m, nil

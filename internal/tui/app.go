@@ -3,6 +3,7 @@ package tui
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -107,6 +108,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case serverSwitchedMsg:
 		if msg.err != nil {
+			slog.Error("server switch failed", "error", msg.err)
 			return m, nil
 		}
 		m.client = msg.client
@@ -186,6 +188,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case common.NotificationsOverviewMsg:
 		if msg.Err == nil {
 			m.notifOverview = msg.Overview
+		} else {
+			slog.Warn("notification overview fetch failed", "error", msg.Err)
 		}
 		return m, m.scheduleNotifRefresh()
 

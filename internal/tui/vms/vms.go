@@ -3,6 +3,7 @@ package vms
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"charm.land/bubbles/v2/spinner"
@@ -72,6 +73,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	case vmActionMsg:
 		if msg.Err != nil {
+			slog.Error("VM action failed", "error", msg.Err)
 			m.err = msg.Err
 		} else {
 			m.err = nil
@@ -81,6 +83,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case common.VMsMsg:
 		m.loading = false
 		if msg.Err != nil {
+			slog.Error("VMs fetch failed", "error", msg.Err)
 			m.err = msg.Err
 			return m, nil
 		}

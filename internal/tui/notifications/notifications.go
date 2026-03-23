@@ -3,6 +3,7 @@ package notifications
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"charm.land/bubbles/v2/spinner"
@@ -67,6 +68,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 
 	case notifActionMsg:
+		if msg.Err != nil {
+			slog.Warn("notification action failed", "error", msg.Err)
+		}
 		if msg.Err == nil {
 			return m, tea.Batch(m.fetchNotifications, func() tea.Msg {
 				return common.NotifRefreshRequestMsg{}
@@ -77,6 +81,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case common.NotificationsListMsg:
 		m.loading = false
 		if msg.Err != nil {
+			slog.Error("notifications fetch failed", "error", msg.Err)
 			m.err = msg.Err
 			return m, nil
 		}

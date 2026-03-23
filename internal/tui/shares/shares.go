@@ -3,6 +3,7 @@ package shares
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"charm.land/bubbles/v2/spinner"
@@ -65,6 +66,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case common.SharesListMsg:
 		m.loading = false
 		if msg.Err != nil {
+			slog.Error("shares fetch failed", "error", msg.Err)
 			m.err = msg.Err
 			return m, nil
 		}

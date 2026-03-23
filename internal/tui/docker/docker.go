@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"os/exec"
 	"sort"
@@ -201,6 +202,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	case LogsMsg:
 		if msg.Err != nil {
+			slog.Warn("logs fetch failed", "container", msg.Name, "error", msg.Err)
 			m.statusMsg = fmt.Sprintf(i18n.T("logs_error"), msg.Err.Error())
 			return m, nil
 		}
@@ -219,6 +221,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	case ContainerActionMsg:
 		if msg.Err != nil {
+			slog.Error("container action failed", "action", msg.Action, "container", msg.Name, "error", msg.Err)
 			m.statusMsg = fmt.Sprintf(i18n.T("action_error"), msg.Action, msg.Name, msg.Err)
 		} else {
 			m.statusMsg = fmt.Sprintf(i18n.T("action_ok"), msg.Action, msg.Name)
@@ -227,6 +230,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	case ConsoleOutputMsg:
 		if msg.Err != nil {
+			slog.Warn("console exec failed", "error", msg.Err)
 			m.statusMsg = i18n.T("console_error")
 		} else {
 			m.statusMsg = i18n.T("console_done")
@@ -235,6 +239,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case common.ContainersMsg:
 		m.loading = false
 		if msg.Err != nil {
+			slog.Error("containers fetch failed", "error", msg.Err)
 			m.err = msg.Err
 			return m, nil
 		}

@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -142,9 +143,11 @@ func SaveServer(name string, cfg *Config) error {
 
 	// Save API key to keychain
 	if err := keyring.Set(keyringService, keyringUser(name), cfg.APIKey); err != nil {
-		// Fallback: save in legacy format
+		slog.Warn("keyring save failed, falling back to config file", "server", name, "error", err)
 		content := fmt.Sprintf("server_url: %q\napi_key: %q\n", cfg.ServerURL, cfg.APIKey)
-		os.WriteFile(FilePath(), []byte(content), 0600)
+		if err := os.WriteFile(FilePath(), []byte(content), 0600); err != nil {
+			slog.Error("config fallback write failed", "error", err)
+		}
 	}
 
 	removeOldConfig()
@@ -168,7 +171,9 @@ func SetLanguage(lang string) error {
 	}
 	mc.Language = lang
 	dir := ConfigDir()
-	os.MkdirAll(dir, 0700)
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		slog.Warn("config dir creation failed", "path", dir, "error", err)
+	}
 	data, _ := yaml.Marshal(mc)
 	return os.WriteFile(FilePath(), data, 0600)
 }

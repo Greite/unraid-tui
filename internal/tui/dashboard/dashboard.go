@@ -3,6 +3,7 @@ package dashboard
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -74,6 +75,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case common.SystemInfoMsg:
 		m.loading = false
 		if msg.Err != nil {
+			slog.Error("system info fetch failed", "error", msg.Err)
 			m.err = msg.Err
 			return m, nil
 		}
@@ -82,6 +84,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	case common.SystemMetricsMsg:
 		if msg.Err != nil {
+			slog.Warn("metrics fetch failed", "error", msg.Err)
 			m.err = msg.Err
 			return m, m.scheduleRefresh()
 		}
@@ -93,17 +96,22 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		if msg.Err == nil {
 			m.arrayInfo = msg.Info
 		} else {
+			slog.Warn("array info fetch failed", "error", msg.Err)
 			m.arrayErr = msg.Err
 		}
 
 	case common.DisksMsg:
 		if msg.Err == nil {
 			m.disks = msg.Disks
+		} else {
+			slog.Warn("disk fetch failed", "error", msg.Err)
 		}
 
 	case common.NetworkMsg:
 		if msg.Err == nil {
 			m.network = msg.Network
+		} else {
+			slog.Warn("network fetch failed", "error", msg.Err)
 		}
 
 	case common.TickMsg:

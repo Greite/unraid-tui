@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -87,7 +88,8 @@ func (c *httpClient) GetSystemInfoExtra(ctx context.Context, info *model.SystemI
 		return err
 	}
 	if len(result.Errors) > 0 {
-		return nil // silently ignore — extra fields may not be available
+		slog.Warn("graphql extra info not available", "error", result.Errors[0].Message)
+		return nil
 	}
 	result.Data.Info.applyTo(info)
 	return nil
@@ -378,12 +380,14 @@ func (c *httpClient) doQuery(ctx context.Context, query string, dest any) error 
 
 	resp, err := c.http.Do(req)
 	if err != nil {
+		slog.Error("api connection failed", "endpoint", c.endpoint, "error", err)
 		return fmt.Errorf("%w: %s", ErrConnectionFailed, err)
 	}
 	defer resp.Body.Close()
 
 	switch resp.StatusCode {
 	case http.StatusUnauthorized, http.StatusForbidden:
+		slog.Warn("api unauthorized", "endpoint", c.endpoint)
 		return ErrUnauthorized
 	case http.StatusOK:
 		// ok
@@ -391,14 +395,18 @@ func (c *httpClient) doQuery(ctx context.Context, query string, dest any) error 
 		// GraphQL servers return error details in the body on 400
 		var errResp graphqlResponse[json.RawMessage]
 		if err := json.NewDecoder(resp.Body).Decode(&errResp); err == nil && len(errResp.Errors) > 0 {
+			slog.Warn("graphql error", "endpoint", c.endpoint, "error", errResp.Errors[0].Message)
 			return fmt.Errorf("graphql: %s", errResp.Errors[0].Message)
 		}
+		slog.Warn("api bad request", "endpoint", c.endpoint)
 		return fmt.Errorf("bad request (400): query rejected by server")
 	default:
+		slog.Warn("api unexpected status", "endpoint", c.endpoint, "status", resp.StatusCode)
 		return fmt.Errorf("unexpected status %d", resp.StatusCode)
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(dest); err != nil {
+		slog.Error("api decode error", "endpoint", c.endpoint, "error", err)
 		return fmt.Errorf("decoding response: %w", err)
 	}
 	return nil
