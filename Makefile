@@ -5,7 +5,7 @@ COMMIT=$(shell git rev-parse --short HEAD 2>/dev/null || echo "none")
 DATE=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 LDFLAGS=-s -w -X github.com/Greite/unraid-tui/cmd.version=$(VERSION) -X github.com/Greite/unraid-tui/cmd.commit=$(COMMIT) -X github.com/Greite/unraid-tui/cmd.date=$(DATE)
 
-.PHONY: build test lint run clean install uninstall release-dry
+.PHONY: build test lint fmt run clean install uninstall release-dry
 
 build:
 	go build -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY_NAME) .
@@ -22,6 +22,10 @@ test-cover:
 
 lint:
 	go vet ./...
+
+fmt:
+	goimports -w .
+	gofmt -w .
 
 run: build
 	$(BUILD_DIR)/$(BINARY_NAME)

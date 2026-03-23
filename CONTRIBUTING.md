@@ -168,6 +168,14 @@ make test-cover    # With coverage
 go test -v -run TestMyTestName ./internal/tui/docker/
 ```
 
+## Code style
+
+- Follow standard Go conventions and idioms
+- Use `gofmt` or `goimports` to format your code (`make fmt`)
+- Write meaningful commit messages (see [conventional commits](#3-commit) above)
+- Add tests for new functionality
+- Update documentation as needed
+
 ## Code conventions
 
 - **Charmbracelet v2 import paths**: `charm.land/bubbletea/v2`, `charm.land/lipgloss/v2`, `charm.land/bubbles/v2`
@@ -177,7 +185,6 @@ go test -v -run TestMyTestName ./internal/tui/docker/
   - Spinner: use `m.spinner.Tick` as the initial Cmd (not via `Init()`)
 - **No import cycles**: TUI sub-packages import `tui/common`, never `tui`
 - **`UnraidClient` interface**: all API access goes through this interface
-- Format code with `gofmt` (applied automatically by Go)
 
 ## Documentation
 

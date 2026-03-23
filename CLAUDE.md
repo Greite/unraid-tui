@@ -12,6 +12,7 @@ make test          # Lance tous les tests
 make test-verbose  # Tests avec détail
 make test-cover    # Tests avec couverture HTML
 make lint          # go vet
+make fmt           # goimports + gofmt
 make run           # Build + exécute
 make install       # Build + copie dans /usr/local/bin/
 make uninstall     # Supprime de /usr/local/bin/
@@ -21,7 +22,7 @@ make clean         # Supprime bin/, dist/ et fichiers de couverture
 
 ## Tests
 
-- **Toujours lancer `make test` après chaque modification** pour vérifier qu'aucune régression n'est introduite.
+- **Toujours lancer `make fmt` puis `make test` après chaque modification** pour formater le code et vérifier qu'aucune régression n'est introduite.
 - Les tests utilisent `httptest.NewServer` pour mocker l'API GraphQL (pas de serveur réel nécessaire).
 - Le mock client est dans `internal/api/mock.go` — l'utiliser pour tous les tests TUI.
 - Les tests TUI testent le modèle (Update/View), pas le rendu terminal réel.
