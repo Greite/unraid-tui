@@ -74,17 +74,58 @@ Fichier `~/.unraid-tui/config.yaml` ou variables d'environnement `UNRAID_SERVER_
 
 - Le repo distant est sur GitHub sous l'organisation/utilisateur **Greite**.
 - Utiliser `gh` (GitHub CLI) pour les opérations GitHub (PRs, issues, releases).
-- Committer avec des messages concis en anglais, au présent impératif (ex: `add onboarding wizard`, `fix config loading`).
 - **Ne jamais ajouter de `Co-authored-by` dans les messages de commit.**
 - Toujours lancer `make test` avant de committer.
-- Workflow de commit et push :
-  ```bash
-  git add <fichiers>
-  git commit -m "message"
-  git push
-  ```
-- Créer une PR : `gh pr create --title "..." --body "..."`.
-- Créer une release : `git tag vX.Y.Z && git push origin vX.Y.Z && goreleaser release --clean`.
+
+### Branches
+
+| Préfixe      | Usage                  |
+|--------------|------------------------|
+| `feat/`      | Nouvelle fonctionnalité |
+| `fix/`       | Correction de bug      |
+| `docs/`      | Documentation          |
+| `refactor/`  | Refactoring            |
+| `test/`      | Ajout/modif de tests   |
+| `chore/`     | Maintenance, CI, deps  |
+
+### Commits (conventional commits)
+
+Format :
+
+```
+type(scope): description
+
+[optional body]
+
+[optional footer]
+```
+
+Types : `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
+
+Exemples :
+
+```bash
+feat(docker): add bulk container restart
+fix(onboarding): handle empty API key validation
+docs(readme): update installation instructions
+refactor(tui): extract common table helpers
+test(api): add GraphQL error response tests
+chore(deps): bump bubbletea to v2.2.0
+```
+
+### Workflow
+
+```bash
+git checkout -b feat/my-feature
+git add <fichiers>
+git commit -m "feat(scope): description"
+git push -u origin feat/my-feature
+gh pr create --title "feat(scope): description" --body "..."
+```
+
+### Release
+
+`git tag vX.Y.Z && git push origin vX.Y.Z && goreleaser release --clean`
 
 ## Dépendances principales
 

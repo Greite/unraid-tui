@@ -55,12 +55,28 @@ Configuration is stored at `~/.unraid-tui/config.yaml`.
 
 ### 3. Commit
 
-Commit messages must be in English, using the present imperative tense:
+We follow [conventional commits](https://www.conventionalcommits.org/):
+
+```
+type(scope): description
+
+[optional body]
+
+[optional footer]
+```
+
+Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
+
+Examples:
 
 ```bash
 # Good
-git commit -m "add VM monitoring page"
-git commit -m "fix container port display when host port is 0"
+git commit -m "feat(vms): add VM monitoring page"
+git commit -m "fix(docker): handle host port 0 in port display"
+git commit -m "docs(readme): update installation instructions"
+git commit -m "refactor(tui): extract common table helpers"
+git commit -m "test(api): add GraphQL error response tests"
+git commit -m "chore(deps): bump bubbletea to v2.2.0"
 
 # Bad
 git commit -m "Added VM page"
@@ -72,7 +88,7 @@ git commit -m "fix stuff"
 
 ```bash
 git push -u origin feat/my-feature
-gh pr create --title "Add VM monitoring page" --body "Description..."
+gh pr create --title "feat(vms): add VM monitoring page" --body "Description..."
 ```
 
 ## Project structure
