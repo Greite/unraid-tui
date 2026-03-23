@@ -252,7 +252,7 @@ func (p *metricsPayload) toDomain() *model.SystemMetrics {
 	return &model.SystemMetrics{
 		CPUUsage:    p.CPU.PercentTotal,
 		CPUCores:    cores,
-		MemoryUsed:  p.Memory.Used,
+		MemoryUsed:  p.Memory.Total - p.Memory.Available,
 		MemoryTotal: p.Memory.Total,
 		MemoryPct:   p.Memory.PercentTotal,
 	}
