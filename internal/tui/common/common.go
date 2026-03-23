@@ -16,6 +16,7 @@ const (
 	PageVMs
 	PageNotifications
 	PageShares
+	PageSyslog
 	PageCount
 )
 
@@ -31,6 +32,8 @@ func (p Page) Key() string {
 		return "page_notifications"
 	case PageShares:
 		return "page_shares"
+	case PageSyslog:
+		return "page_syslog"
 	default:
 		return "Unknown"
 	}

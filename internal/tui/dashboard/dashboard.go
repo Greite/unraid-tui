@@ -153,7 +153,8 @@ func (m Model) View() string {
 
 	row3 := lipgloss.JoinHorizontal(lipgloss.Top, diskPanel, " ", parityPanel)
 
-	result := errLine + "\n" + row1 + "\n\n" + row2 + "\n\n" + row3 + "\n"
+	hint := common.StyleSubtle.Render("  ↑/↓: " + i18n.T("scroll") + "  │  r: " + i18n.T("refresh"))
+	result := errLine + "\n" + row1 + "\n\n" + row2 + "\n\n" + row3 + "\n\n" + hint + "\n"
 
 	// Apply scroll
 	lines := strings.Split(result, "\n")

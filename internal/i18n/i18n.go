@@ -41,6 +41,7 @@ var translations = map[string]map[string]string{
 	"enter_key":   {"en": "enter key", "fr": "saisir la clé", "zh": "输入密钥", "hi": "कुंजी दर्ज करें", "es": "ingresar clave", "ar": "إدخال المفتاح"},
 	"launch_dash": {"en": "launch dashboard", "fr": "lancer le dashboard", "zh": "启动仪表盘", "hi": "डैशबोर्ड लॉन्च करें", "es": "abrir panel", "ar": "فتح لوحة التحكم"},
 	"line":        {"en": "line", "fr": "ligne", "zh": "行", "hi": "पंक्ति", "es": "línea", "ar": "سطر"},
+	"syslog":      {"en": "syslog", "fr": "syslog", "zh": "系统日志", "hi": "सिसलॉग", "es": "syslog", "ar": "سجل النظام"},
 	"lang":        {"en": "language", "fr": "langue", "zh": "语言", "hi": "भाषा", "es": "idioma", "ar": "اللغة"},
 
 	// === Pages ===
@@ -49,6 +50,7 @@ var translations = map[string]map[string]string{
 	"page_vms":           {"en": "VMs", "fr": "VMs", "zh": "虚拟机", "hi": "VMs", "es": "VMs", "ar": "VMs"},
 	"page_notifications": {"en": "Notifs", "fr": "Notifs", "zh": "通知", "hi": "सूचनाएं", "es": "Notifs", "ar": "إشعارات"},
 	"page_shares":        {"en": "Shares", "fr": "Shares", "zh": "共享", "hi": "शेयर", "es": "Shares", "ar": "مشاركات"},
+	"page_syslog":        {"en": "Syslog", "fr": "Syslog", "zh": "系统日志", "hi": "Syslog", "es": "Syslog", "ar": "Syslog"},
 
 	// === Dashboard ===
 	"system":    {"en": "System", "fr": "Système", "zh": "系统", "hi": "सिस्टम", "es": "Sistema", "ar": "النظام"},

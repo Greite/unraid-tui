@@ -19,6 +19,7 @@ import (
 	"github.com/Greite/unraid-tui/internal/tui/notifications"
 	"github.com/Greite/unraid-tui/internal/tui/onboarding"
 	"github.com/Greite/unraid-tui/internal/tui/shares"
+	"github.com/Greite/unraid-tui/internal/tui/syslog"
 	"github.com/Greite/unraid-tui/internal/tui/vms"
 )
 
@@ -37,6 +38,7 @@ type Model struct {
 	vms           vms.Model
 	notifications notifications.Model
 	shares        shares.Model
+	syslogPage    syslog.Model
 	client        api.UnraidClient
 	notifOverview *model.NotificationOverview
 	width         int
@@ -61,6 +63,7 @@ func NewModel(client api.UnraidClient) Model {
 		vms:           vms.New(client),
 		notifications: notifications.New(client),
 		shares:        shares.New(client),
+		syslogPage:    syslog.New(client),
 		client:        client,
 	}
 }
@@ -117,12 +120,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.vms = vms.New(msg.client)
 		m.notifications = notifications.New(msg.client)
 		m.shares = shares.New(msg.client)
+		m.syslogPage = syslog.New(msg.client)
 		contentHeight := m.height - 4
 		m.dashboard.SetSize(m.width, contentHeight)
 		m.docker.SetSize(m.width, contentHeight)
 		m.vms.SetSize(m.width, contentHeight)
 		m.notifications.SetSize(m.width, contentHeight)
 		m.shares.SetSize(m.width, contentHeight)
+		m.syslogPage.SetSize(m.width, contentHeight)
 		m.activePage = common.PageDashboard
 		return m, tea.Batch(m.dashboard.Init(), m.fetchNotifOverview)
 
@@ -135,6 +140,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.vms.SetSize(msg.Width, contentHeight)
 		m.notifications.SetSize(msg.Width, contentHeight)
 		m.shares.SetSize(msg.Width, contentHeight)
+		m.syslogPage.SetSize(msg.Width, contentHeight)
 
 	case tea.KeyPressMsg:
 		switch {
@@ -168,6 +174,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.switchPage(common.PageNotifications)
 		case msg.Code == tea.KeyF5:
 			return m, m.switchPage(common.PageShares)
+		case msg.Code == tea.KeyF6:
+			return m, m.switchPage(common.PageSyslog)
 		case msg.Code == 'r':
 			return m, m.refreshActivePage()
 		}
@@ -209,6 +217,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.notifications, cmd = m.notifications.Update(msg)
 	case common.PageShares:
 		m.shares, cmd = m.shares.Update(msg)
+	case common.PageSyslog:
+		m.syslogPage, cmd = m.syslogPage.Update(msg)
 	}
 	return m, cmd
 }
@@ -230,6 +240,8 @@ func (m *Model) switchPage(page common.Page) tea.Cmd {
 		return m.notifications.Init()
 	case common.PageShares:
 		return m.shares.Init()
+	case common.PageSyslog:
+		return m.syslogPage.Init()
 	}
 	return nil
 }
@@ -244,6 +256,8 @@ func (m Model) refreshActivePage() tea.Cmd {
 		return m.notifications.Refresh()
 	case common.PageShares:
 		return m.shares.Refresh()
+	case common.PageSyslog:
+		return m.syslogPage.Refresh()
 	}
 	return nil
 }
@@ -272,6 +286,8 @@ func (m Model) View() tea.View {
 			content = m.notifications.View()
 		case common.PageShares:
 			content = m.shares.View()
+		case common.PageSyslog:
+			content = m.syslogPage.View()
 		}
 	}
 
