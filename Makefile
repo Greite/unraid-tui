@@ -24,7 +24,7 @@ lint:
 	go vet ./...
 
 fmt:
-	goimports -w .
+	go run golang.org/x/tools/cmd/goimports@latest -w .
 	gofmt -w .
 
 run: build
