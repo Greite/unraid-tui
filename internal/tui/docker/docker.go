@@ -26,6 +26,7 @@ const (
 	sortImage
 	sortState
 	sortStatus
+	sortAuto
 	sortPorts
 	sortColumnCount
 )
@@ -40,6 +41,8 @@ func (c sortColumn) label() string {
 		return "STATE"
 	case sortStatus:
 		return "STATUS"
+	case sortAuto:
+		return "AUTO"
 	case sortPorts:
 		return "PORTS"
 	default:
@@ -165,6 +168,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.toggleSort(sortStatus)
 		case "p":
 			m.toggleSort(sortPorts)
+		case "o":
+			m.toggleSort(sortAuto)
 		case "l":
 			return m, m.fetchLogs()
 		case "w":
@@ -177,6 +182,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			return m, m.togglePause()
 		case "u":
 			return m, m.updateContainer()
+		case "a":
+			return m, m.toggleAutostart()
 		case "U":
 			return m, m.updateAllContainers()
 		}
@@ -392,7 +399,7 @@ func (m Model) viewList() string {
 	}
 	s.WriteString("\n" + title + status + "\n\n")
 
-	colName, colImage, colState, colStatus, colPorts := m.colWidths()
+	colName, colImage, colState, colStatus, colAuto, colPorts := m.colWidths()
 
 	colDefs := []struct {
 		col   sortColumn
@@ -402,6 +409,7 @@ func (m Model) viewList() string {
 		{sortImage, colImage},
 		{sortState, colState},
 		{sortStatus, colStatus},
+		{sortAuto, colAuto},
 		{sortPorts, colPorts},
 	}
 
@@ -432,7 +440,7 @@ func (m Model) viewList() string {
 	headerStyle := lipgloss.NewStyle().Bold(true).Foreground(common.ColorPrimary)
 	s.WriteString(headerStyle.Render(header) + "\n")
 
-	totalWidth := colName + colImage + colState + colStatus + colPorts + 4
+	totalWidth := colName + colImage + colState + colStatus + colAuto + colPorts + 5
 	sep := "  " + strings.Repeat("─", totalWidth)
 	s.WriteString(common.StyleSubtle.Render(sep) + "\n")
 
@@ -449,11 +457,16 @@ func (m Model) viewList() string {
 
 	for idx := m.offset; idx < end; idx++ {
 		c := m.sorted[idx]
-		row := fmt.Sprintf("  %-*s %-*s %-*s %-*s %-*s",
+		autoIcon := "○"
+		if c.AutoStart {
+			autoIcon = "●"
+		}
+		row := fmt.Sprintf("  %-*s %-*s %-*s %-*s %-*s %-*s",
 			colName, truncate(c.Name, colName),
 			colImage, truncate(c.Image, colImage),
 			colState, stateIcon(c.State, c.UpdateAvailable),
 			colStatus, truncate(c.Status, colStatus),
+			colAuto, autoIcon,
 			colPorts, truncate(formatPorts(c.Ports), colPorts),
 		)
 		if idx == m.cursor {
@@ -480,12 +493,17 @@ func (m Model) viewList() string {
 		if c.WebUI != "" || hasHTTPPort(c.Ports) {
 			actions = append(actions, "w: "+i18n.T("webui"))
 		}
+		if c.AutoStart {
+			actions = append(actions, "a: "+i18n.T("autostart")+" ●")
+		} else {
+			actions = append(actions, "a: "+i18n.T("autostart")+" ○")
+		}
 		if len(actions) > 0 {
 			s.WriteString("\n  " + common.StyleSubtle.Render(strings.Join(actions, "  │  ")))
 		}
 	}
 
-	s.WriteString("\n" + common.StyleSubtle.Render("  n/i/s/t/p: "+i18n.T("sort")+"  │  ↑/↓: "+i18n.T("navigate")+"  │  r: "+i18n.T("refresh")+"  │  U: "+i18n.T("update_all")) + "\n")
+	s.WriteString("\n" + common.StyleSubtle.Render("  n/i/s/t/o/p: "+i18n.T("sort")+"  │  ↑/↓: "+i18n.T("navigate")+"  │  r: "+i18n.T("refresh")+"  │  U: "+i18n.T("update_all")) + "\n")
 
 	return s.String()
 }
@@ -632,6 +650,28 @@ func (m *Model) updateAllContainers() tea.Cmd {
 	}
 }
 
+func (m *Model) toggleAutostart() tea.Cmd {
+	if m.cursor >= len(m.sorted) {
+		return nil
+	}
+	c := m.sorted[m.cursor]
+	id := c.ID
+	name := c.Name
+	newState := !c.AutoStart
+	client := m.client
+	allContainers := m.containers
+
+	label := i18n.T("autostart_on")
+	if !newState {
+		label = i18n.T("autostart_off")
+	}
+	m.statusMsg = "⏳ " + label + " " + name + "..."
+	return func() tea.Msg {
+		err := client.SetAutostart(context.Background(), allContainers, id, newState)
+		return ContainerActionMsg{Action: "Autostart", Name: name, Err: err}
+	}
+}
+
 func (m Model) execConsole() tea.Cmd {
 	if m.cursor >= len(m.sorted) {
 		return nil
@@ -701,6 +741,8 @@ func (m *Model) applySort() {
 			less = a.State < b.State
 		case sortStatus:
 			less = strings.ToLower(a.Status) < strings.ToLower(b.Status)
+		case sortAuto:
+			less = !a.AutoStart && b.AutoStart
 		case sortPorts:
 			less = formatPorts(a.Ports) < formatPorts(b.Ports)
 		}
@@ -721,15 +763,16 @@ func (m Model) visibleRows() int {
 	return v
 }
 
-func (m Model) colWidths() (int, int, int, int, int) {
+func (m Model) colWidths() (int, int, int, int, int, int) {
 	available := m.width - 8
 	if available < 60 {
 		available = 60
 	}
-	return available * 20 / 100,
-		available * 25 / 100,
+	return available * 18 / 100,
+		available * 22 / 100,
 		available * 12 / 100,
-		available * 25 / 100,
+		available * 22 / 100,
+		6,
 		available * 15 / 100
 }
 

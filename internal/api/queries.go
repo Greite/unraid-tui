@@ -206,7 +206,10 @@ const mutationPauseContainer = `mutation { docker { pause(id: "%s") { id state }
 const mutationUnpauseContainer = `mutation { docker { unpause(id: "%s") { id state } } }`
 const mutationUpdateContainer = `mutation { docker { updateContainer(id: "%s") { id names image } } }`
 const mutationUpdateAllContainers = `mutation { docker { updateAllContainers { id names } } }`
-const mutationAutostart = `mutation { docker { updateAutostartConfiguration(entries: [{ id: "%s", autoStart: %t, wait: %d }]) } }`
+
+// mutationAutostart is built dynamically with all container entries.
+const mutationAutostartPrefix = `mutation { docker { updateAutostartConfiguration(entries: [`
+const mutationAutostartSuffix = `]) } }`
 
 // VM queries
 const queryVMs = `query {

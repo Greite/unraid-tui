@@ -570,6 +570,7 @@ func containersToDomain(payloads []containerPayload, updateStatuses []updateStat
 			Status:          p.Status,
 			Ports:           ports,
 			WebUI:           p.WebUI,
+			AutoStart:       p.AutoStart,
 			UpdateAvailable: updateMap[name],
 		}
 	}

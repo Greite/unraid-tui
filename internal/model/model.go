@@ -124,6 +124,7 @@ type Container struct {
 	Status          string // "Up 2 hours", "Exited (0) 3 days ago"
 	Ports           []Port
 	WebUI           string
+	AutoStart       bool
 	UpdateAvailable bool
 	CPUPercent      float64
 	MemUsage        uint64

@@ -39,7 +39,7 @@ type UnraidClient interface {
 	GetNetwork(ctx context.Context) ([]model.NetworkAccess, error)
 	GetContainerStats(ctx context.Context) (map[string]model.Container, error)
 	GetParityHistory(ctx context.Context) ([]model.ParityHistoryEntry, error)
-	SetAutostart(ctx context.Context, id string, autoStart bool, wait int) error
+	SetAutostart(ctx context.Context, containers []model.Container, targetID string, autoStart bool) error
 	// VM mutations
 	StartVM(ctx context.Context, id string) error
 	StopVM(ctx context.Context, id string) error
@@ -319,8 +319,16 @@ func (c *httpClient) GetParityHistory(ctx context.Context) ([]model.ParityHistor
 	return entries, nil
 }
 
-func (c *httpClient) SetAutostart(ctx context.Context, id string, autoStart bool, wait int) error {
-	query := fmt.Sprintf(mutationAutostart, id, autoStart, wait)
+func (c *httpClient) SetAutostart(ctx context.Context, containers []model.Container, targetID string, autoStart bool) error {
+	var entries []string
+	for _, ct := range containers {
+		as := ct.AutoStart
+		if ct.ID == targetID {
+			as = autoStart
+		}
+		entries = append(entries, fmt.Sprintf(`{ id: "%s", autoStart: %t, wait: 0 }`, ct.ID, as))
+	}
+	query := mutationAutostartPrefix + strings.Join(entries, ", ") + mutationAutostartSuffix
 	return c.doContainerAction(ctx, query, "")
 }
 

@@ -95,19 +95,21 @@ func (m *MockClient) GetNetwork(ctx context.Context) ([]model.NetworkAccess, err
 	}
 	return nil, nil
 }
-func (m *MockClient) StartContainer(_ context.Context, _ string) error              { return nil }
-func (m *MockClient) StopContainer(_ context.Context, _ string) error               { return nil }
-func (m *MockClient) PauseContainer(_ context.Context, _ string) error              { return nil }
-func (m *MockClient) UnpauseContainer(_ context.Context, _ string) error            { return nil }
-func (m *MockClient) UpdateContainer(_ context.Context, _ string) error             { return nil }
-func (m *MockClient) UpdateAllContainers(_ context.Context) error                   { return nil }
-func (m *MockClient) SetAutostart(_ context.Context, _ string, _ bool, _ int) error { return nil }
-func (m *MockClient) StartVM(_ context.Context, _ string) error                     { return nil }
-func (m *MockClient) StopVM(_ context.Context, _ string) error                      { return nil }
-func (m *MockClient) PauseVM(_ context.Context, _ string) error                     { return nil }
-func (m *MockClient) ResumeVM(_ context.Context, _ string) error                    { return nil }
-func (m *MockClient) ForceStopVM(_ context.Context, _ string) error                 { return nil }
-func (m *MockClient) RebootVM(_ context.Context, _ string) error                    { return nil }
-func (m *MockClient) ArchiveNotification(_ context.Context, _ string) error         { return nil }
-func (m *MockClient) ArchiveAllNotifications(_ context.Context) error               { return nil }
-func (m *MockClient) ServerURL() string                                             { return "http://localhost" }
+func (m *MockClient) StartContainer(_ context.Context, _ string) error   { return nil }
+func (m *MockClient) StopContainer(_ context.Context, _ string) error    { return nil }
+func (m *MockClient) PauseContainer(_ context.Context, _ string) error   { return nil }
+func (m *MockClient) UnpauseContainer(_ context.Context, _ string) error { return nil }
+func (m *MockClient) UpdateContainer(_ context.Context, _ string) error  { return nil }
+func (m *MockClient) UpdateAllContainers(_ context.Context) error        { return nil }
+func (m *MockClient) SetAutostart(_ context.Context, _ []model.Container, _ string, _ bool) error {
+	return nil
+}
+func (m *MockClient) StartVM(_ context.Context, _ string) error             { return nil }
+func (m *MockClient) StopVM(_ context.Context, _ string) error              { return nil }
+func (m *MockClient) PauseVM(_ context.Context, _ string) error             { return nil }
+func (m *MockClient) ResumeVM(_ context.Context, _ string) error            { return nil }
+func (m *MockClient) ForceStopVM(_ context.Context, _ string) error         { return nil }
+func (m *MockClient) RebootVM(_ context.Context, _ string) error            { return nil }
+func (m *MockClient) ArchiveNotification(_ context.Context, _ string) error { return nil }
+func (m *MockClient) ArchiveAllNotifications(_ context.Context) error       { return nil }
+func (m *MockClient) ServerURL() string                                     { return "http://localhost" }
