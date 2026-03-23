@@ -16,6 +16,11 @@ import (
 	"github.com/Greite/unraid-tui/internal/tui/common"
 )
 
+type parityActionMsg struct {
+	action string
+	err    error
+}
+
 type Model struct {
 	client       api.UnraidClient
 	systemInfo   *model.SystemInfo
@@ -30,6 +35,7 @@ type Model struct {
 	width        int
 	height       int
 	scroll       int
+	statusMsg    string
 	cpuTempAlert bool // true if already alerted for current high temp
 	diskAlert    bool // true if already alerted for current disk error
 }
@@ -72,7 +78,20 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.scroll++
 		case "g":
 			m.scroll = 0
+		case "p":
+			return m, m.parityAction()
+		case "x":
+			return m, m.cancelParity()
 		}
+
+	case parityActionMsg:
+		if msg.err != nil {
+			slog.Error("parity action failed", "action", msg.action, "error", msg.err)
+			m.statusMsg = "✗ " + msg.action + ": " + msg.err.Error()
+		} else {
+			m.statusMsg = "✓ " + msg.action + " OK"
+		}
+		return m, m.fetchArrayInfo
 
 	case common.SystemInfoMsg:
 		m.loading = false
@@ -151,6 +170,9 @@ func (m Model) View() string {
 	if m.err != nil {
 		errLine = "\n  " + common.StyleError.Render("⚠ "+m.err.Error()) + "\n"
 	}
+	if m.statusMsg != "" {
+		errLine += "\n  " + common.StyleSubtle.Render("→ "+m.statusMsg) + "\n"
+	}
 
 	// Row 1: System + CPU summary + Memory + Network (4 cards)
 	sysCard := m.renderSystemCard()
@@ -172,7 +194,17 @@ func (m Model) View() string {
 
 	row3 := lipgloss.JoinHorizontal(lipgloss.Top, diskPanel, " ", parityPanel)
 
-	hint := common.StyleSubtle.Render("  ↑/↓: " + i18n.T("scroll") + "  │  r: " + i18n.T("refresh"))
+	parityHint := ""
+	if m.arrayInfo != nil {
+		if m.arrayInfo.ParityRunning {
+			parityHint = "  │  p: " + i18n.T("parity_pause") + "  │  x: " + i18n.T("parity_cancel")
+		} else if m.arrayInfo.ParityStatus == "PAUSED" {
+			parityHint = "  │  p: " + i18n.T("parity_resume") + "  │  x: " + i18n.T("parity_cancel")
+		} else {
+			parityHint = "  │  p: " + i18n.T("parity_start")
+		}
+	}
+	hint := common.StyleSubtle.Render("  ↑/↓: " + i18n.T("scroll") + "  │  r: " + i18n.T("refresh") + parityHint)
 	result := errLine + "\n" + row1 + "\n\n" + row2 + "\n\n" + row3 + "\n\n" + hint + "\n"
 
 	// Apply scroll
@@ -524,6 +556,45 @@ func (m Model) renderParityHistoryPanel() string {
 	return common.StylePanel.Width(w).Render(
 		common.StyleTitle.Render(i18n.T("parity_history")) + "\n" + content,
 	)
+}
+
+// parityAction starts, pauses, or resumes parity check based on current state.
+func (m *Model) parityAction() tea.Cmd {
+	if m.arrayInfo == nil {
+		return nil
+	}
+	client := m.client
+	if m.arrayInfo.ParityRunning {
+		m.statusMsg = "⏳ " + i18n.T("parity_pause") + "..."
+		return func() tea.Msg {
+			err := client.PauseParityCheck(context.Background())
+			return parityActionMsg{action: i18n.T("parity_pause"), err: err}
+		}
+	}
+	if m.arrayInfo.ParityStatus == "PAUSED" {
+		m.statusMsg = "⏳ " + i18n.T("parity_resume") + "..."
+		return func() tea.Msg {
+			err := client.ResumeParityCheck(context.Background())
+			return parityActionMsg{action: i18n.T("parity_resume"), err: err}
+		}
+	}
+	m.statusMsg = "⏳ " + i18n.T("parity_start") + "..."
+	return func() tea.Msg {
+		err := client.StartParityCheck(context.Background())
+		return parityActionMsg{action: i18n.T("parity_start"), err: err}
+	}
+}
+
+func (m *Model) cancelParity() tea.Cmd {
+	if m.arrayInfo == nil || !m.arrayInfo.ParityRunning {
+		return nil
+	}
+	client := m.client
+	m.statusMsg = "⏳ " + i18n.T("parity_cancel") + "..."
+	return func() tea.Msg {
+		err := client.CancelParityCheck(context.Background())
+		return parityActionMsg{action: i18n.T("parity_cancel"), err: err}
+	}
 }
 
 func truncate(s string, max int) string {

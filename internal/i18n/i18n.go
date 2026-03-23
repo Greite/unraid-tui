@@ -77,6 +77,10 @@ var translations = map[string]map[string]string{
 	"parity_duration":   {"en": "Duration", "fr": "Durée", "zh": "持续时间", "hi": "अवधि", "es": "Duración", "ar": "المدة"},
 	"parity_speed":      {"en": "Speed", "fr": "Vitesse", "zh": "速度", "hi": "गति", "es": "Velocidad", "ar": "السرعة"},
 	"parity_errors":     {"en": "Errors", "fr": "Erreurs", "zh": "错误", "hi": "त्रुटियां", "es": "Errores", "ar": "الأخطاء"},
+	"parity_start":      {"en": "start check", "fr": "lancer le check", "zh": "开始检查", "hi": "जांच शुरू", "es": "iniciar check", "ar": "بدء الفحص"},
+	"parity_pause":      {"en": "pause", "fr": "pause", "zh": "暂停", "hi": "रोकें", "es": "pausar", "ar": "إيقاف مؤقت"},
+	"parity_resume":     {"en": "resume", "fr": "reprendre", "zh": "恢复", "hi": "जारी रखें", "es": "reanudar", "ar": "استئناف"},
+	"parity_cancel":     {"en": "cancel", "fr": "annuler", "zh": "取消", "hi": "रद्द करें", "es": "cancelar", "ar": "إلغاء"},
 	"no_parity_history": {"en": "No parity checks recorded", "fr": "Aucun check de parité enregistré", "zh": "无校验记录", "hi": "कोई पैरिटी जांच दर्ज नहीं", "es": "Sin verificaciones de paridad", "ar": "لا توجد سجلات تماثل"},
 
 	// === Docker ===

@@ -104,6 +104,10 @@ func (m *MockClient) UpdateAllContainers(_ context.Context) error        { retur
 func (m *MockClient) SetAutostart(_ context.Context, _ []model.Container, _ string, _ bool) error {
 	return nil
 }
+func (m *MockClient) StartParityCheck(_ context.Context) error              { return nil }
+func (m *MockClient) PauseParityCheck(_ context.Context) error              { return nil }
+func (m *MockClient) ResumeParityCheck(_ context.Context) error             { return nil }
+func (m *MockClient) CancelParityCheck(_ context.Context) error             { return nil }
 func (m *MockClient) StartVM(_ context.Context, _ string) error             { return nil }
 func (m *MockClient) StopVM(_ context.Context, _ string) error              { return nil }
 func (m *MockClient) PauseVM(_ context.Context, _ string) error             { return nil }

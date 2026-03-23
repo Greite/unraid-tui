@@ -41,6 +41,11 @@ type UnraidClient interface {
 	GetContainerStats(ctx context.Context) (map[string]model.Container, error)
 	GetParityHistory(ctx context.Context) ([]model.ParityHistoryEntry, error)
 	SetAutostart(ctx context.Context, containers []model.Container, targetID string, autoStart bool) error
+	// Parity check mutations
+	StartParityCheck(ctx context.Context) error
+	PauseParityCheck(ctx context.Context) error
+	ResumeParityCheck(ctx context.Context) error
+	CancelParityCheck(ctx context.Context) error
 	// VM mutations
 	StartVM(ctx context.Context, id string) error
 	StopVM(ctx context.Context, id string) error
@@ -332,6 +337,30 @@ func (c *httpClient) SetAutostart(ctx context.Context, containers []model.Contai
 	}
 	query := mutationAutostartPrefix + strings.Join(entries, ", ") + mutationAutostartSuffix
 	return c.doContainerAction(ctx, query, "")
+}
+
+func (c *httpClient) StartParityCheck(ctx context.Context) error {
+	return c.doMutation(ctx, mutationParityStart)
+}
+func (c *httpClient) PauseParityCheck(ctx context.Context) error {
+	return c.doMutation(ctx, mutationParityPause)
+}
+func (c *httpClient) ResumeParityCheck(ctx context.Context) error {
+	return c.doMutation(ctx, mutationParityResume)
+}
+func (c *httpClient) CancelParityCheck(ctx context.Context) error {
+	return c.doMutation(ctx, mutationParityCancel)
+}
+
+func (c *httpClient) doMutation(ctx context.Context, mutation string) error {
+	var result graphqlResponse[json.RawMessage]
+	if err := c.doQuery(ctx, mutation, &result); err != nil {
+		return err
+	}
+	if len(result.Errors) > 0 {
+		return fmt.Errorf("graphql: %s", result.Errors[0].Message)
+	}
+	return nil
 }
 
 func (c *httpClient) StartVM(ctx context.Context, id string) error {

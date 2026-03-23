@@ -211,6 +211,12 @@ const mutationUpdateAllContainers = `mutation { docker { updateAllContainers { i
 const mutationAutostartPrefix = `mutation { docker { updateAutostartConfiguration(entries: [`
 const mutationAutostartSuffix = `]) } }`
 
+// Parity check mutations
+const mutationParityStart = `mutation { parityCheck { start(correct: false) } }`
+const mutationParityPause = `mutation { parityCheck { pause } }`
+const mutationParityResume = `mutation { parityCheck { resume } }`
+const mutationParityCancel = `mutation { parityCheck { cancel } }`
+
 // VM queries
 const queryVMs = `query {
 	vms {
