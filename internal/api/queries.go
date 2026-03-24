@@ -211,6 +211,9 @@ const mutationUpdateAllContainers = `mutation { docker { updateAllContainers { i
 const mutationAutostartPrefix = `mutation { docker { updateAutostartConfiguration(entries: [`
 const mutationAutostartSuffix = `]) } }`
 
+// Plugins query
+const queryInstalledPlugins = `query { installedUnraidPlugins }`
+
 // Parity check mutations
 const mutationParityStart = `mutation { parityCheck { start(correct: false) } }`
 const mutationParityPause = `mutation { parityCheck { pause } }`

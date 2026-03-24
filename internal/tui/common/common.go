@@ -15,6 +15,7 @@ const (
 	PageDashboard Page = iota
 	PageDocker
 	PageVMs
+	PagePlugins
 	PageNotifications
 	PageShares
 	PageSyslog
@@ -31,6 +32,8 @@ func (p Page) Key() string {
 		return "page_vms"
 	case PageNotifications:
 		return "page_notifications"
+	case PagePlugins:
+		return "page_plugins"
 	case PageShares:
 		return "page_shares"
 	case PageSyslog:
@@ -97,6 +100,11 @@ type NotifRefreshRequestMsg struct{}
 type NotificationsOverviewMsg struct {
 	Overview *model.NotificationOverview
 	Err      error
+}
+
+type PluginsMsg struct {
+	Plugins []string
+	Err     error
 }
 
 type TickMsg time.Time

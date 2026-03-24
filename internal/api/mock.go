@@ -101,6 +101,9 @@ func (m *MockClient) PauseContainer(_ context.Context, _ string) error   { retur
 func (m *MockClient) UnpauseContainer(_ context.Context, _ string) error { return nil }
 func (m *MockClient) UpdateContainer(_ context.Context, _ string) error  { return nil }
 func (m *MockClient) UpdateAllContainers(_ context.Context) error        { return nil }
+func (m *MockClient) GetInstalledPlugins(_ context.Context) ([]string, error) {
+	return nil, nil
+}
 func (m *MockClient) SetAutostart(_ context.Context, _ []model.Container, _ string, _ bool) error {
 	return nil
 }

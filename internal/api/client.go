@@ -40,6 +40,7 @@ type UnraidClient interface {
 	GetNetwork(ctx context.Context) ([]model.NetworkAccess, error)
 	GetContainerStats(ctx context.Context) (map[string]model.Container, error)
 	GetParityHistory(ctx context.Context) ([]model.ParityHistoryEntry, error)
+	GetInstalledPlugins(ctx context.Context) ([]string, error)
 	SetAutostart(ctx context.Context, containers []model.Container, targetID string, autoStart bool) error
 	// Parity check mutations
 	StartParityCheck(ctx context.Context) error
@@ -324,6 +325,19 @@ func (c *httpClient) GetParityHistory(ctx context.Context) ([]model.ParityHistor
 		}
 	}
 	return entries, nil
+}
+
+func (c *httpClient) GetInstalledPlugins(ctx context.Context) ([]string, error) {
+	var result graphqlResponse[struct {
+		InstalledUnraidPlugins []string `json:"installedUnraidPlugins"`
+	}]
+	if err := c.doQuery(ctx, queryInstalledPlugins, &result); err != nil {
+		return nil, err
+	}
+	if len(result.Errors) > 0 {
+		return nil, fmt.Errorf("graphql: %s", result.Errors[0].Message)
+	}
+	return result.Data.InstalledUnraidPlugins, nil
 }
 
 func (c *httpClient) SetAutostart(ctx context.Context, containers []model.Container, targetID string, autoStart bool) error {

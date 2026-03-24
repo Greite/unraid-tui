@@ -18,6 +18,7 @@ import (
 	"github.com/Greite/unraid-tui/internal/tui/docker"
 	"github.com/Greite/unraid-tui/internal/tui/notifications"
 	"github.com/Greite/unraid-tui/internal/tui/onboarding"
+	"github.com/Greite/unraid-tui/internal/tui/plugins"
 	"github.com/Greite/unraid-tui/internal/tui/shares"
 	"github.com/Greite/unraid-tui/internal/tui/syslog"
 	"github.com/Greite/unraid-tui/internal/tui/vms"
@@ -36,6 +37,7 @@ type Model struct {
 	dashboard     dashboard.Model
 	docker        docker.Model
 	vms           vms.Model
+	pluginsPage   plugins.Model
 	notifications notifications.Model
 	shares        shares.Model
 	syslogPage    syslog.Model
@@ -61,6 +63,7 @@ func NewModel(client api.UnraidClient) Model {
 		dashboard:     dashboard.New(client),
 		docker:        docker.New(client),
 		vms:           vms.New(client),
+		pluginsPage:   plugins.New(client),
 		notifications: notifications.New(client),
 		shares:        shares.New(client),
 		syslogPage:    syslog.New(client),
@@ -118,6 +121,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.dashboard = dashboard.New(msg.client)
 		m.docker = docker.New(msg.client)
 		m.vms = vms.New(msg.client)
+		m.pluginsPage = plugins.New(msg.client)
 		m.notifications = notifications.New(msg.client)
 		m.shares = shares.New(msg.client)
 		m.syslogPage = syslog.New(msg.client)
@@ -125,6 +129,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.dashboard.SetSize(m.width, contentHeight)
 		m.docker.SetSize(m.width, contentHeight)
 		m.vms.SetSize(m.width, contentHeight)
+		m.pluginsPage.SetSize(m.width, contentHeight)
 		m.notifications.SetSize(m.width, contentHeight)
 		m.shares.SetSize(m.width, contentHeight)
 		m.syslogPage.SetSize(m.width, contentHeight)
@@ -138,6 +143,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.dashboard.SetSize(msg.Width, contentHeight)
 		m.docker.SetSize(msg.Width, contentHeight)
 		m.vms.SetSize(msg.Width, contentHeight)
+		m.pluginsPage.SetSize(msg.Width, contentHeight)
 		m.notifications.SetSize(msg.Width, contentHeight)
 		m.shares.SetSize(msg.Width, contentHeight)
 		m.syslogPage.SetSize(msg.Width, contentHeight)
@@ -171,10 +177,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case msg.Code == tea.KeyF3:
 			return m, m.switchPage(common.PageVMs)
 		case msg.Code == tea.KeyF4:
-			return m, m.switchPage(common.PageNotifications)
+			return m, m.switchPage(common.PagePlugins)
 		case msg.Code == tea.KeyF5:
-			return m, m.switchPage(common.PageShares)
+			return m, m.switchPage(common.PageNotifications)
 		case msg.Code == tea.KeyF6:
+			return m, m.switchPage(common.PageShares)
+		case msg.Code == tea.KeyF7:
 			return m, m.switchPage(common.PageSyslog)
 		case msg.Code == 'r':
 			return m, m.refreshActivePage()
@@ -221,6 +229,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.docker, cmd = m.docker.Update(msg)
 	case common.PageVMs:
 		m.vms, cmd = m.vms.Update(msg)
+	case common.PagePlugins:
+		m.pluginsPage, cmd = m.pluginsPage.Update(msg)
 	case common.PageNotifications:
 		m.notifications, cmd = m.notifications.Update(msg)
 	case common.PageShares:
@@ -244,6 +254,8 @@ func (m *Model) switchPage(page common.Page) tea.Cmd {
 		return m.docker.Init()
 	case common.PageVMs:
 		return m.vms.Init()
+	case common.PagePlugins:
+		return m.pluginsPage.Init()
 	case common.PageNotifications:
 		return m.notifications.Init()
 	case common.PageShares:
@@ -260,6 +272,8 @@ func (m Model) refreshActivePage() tea.Cmd {
 		return m.docker.Refresh()
 	case common.PageVMs:
 		return m.vms.Refresh()
+	case common.PagePlugins:
+		return m.pluginsPage.Refresh()
 	case common.PageNotifications:
 		return m.notifications.Refresh()
 	case common.PageShares:
@@ -290,6 +304,8 @@ func (m Model) View() tea.View {
 			content = m.docker.View()
 		case common.PageVMs:
 			content = m.vms.View()
+		case common.PagePlugins:
+			content = m.pluginsPage.View()
 		case common.PageNotifications:
 			content = m.notifications.View()
 		case common.PageShares:

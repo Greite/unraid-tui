@@ -83,14 +83,20 @@ func TestUpdate_FKeySwitchesPage(t *testing.T) {
 
 	updated, _ = root.Update(tea.KeyPressMsg(tea.Key{Code: tea.KeyF4}))
 	root = updated.(Model)
-	if root.ActivePage() != common.PageNotifications {
-		t.Errorf("expected PageNotifications on F4, got %v", root.ActivePage())
+	if root.ActivePage() != common.PagePlugins {
+		t.Errorf("expected PagePlugins on F4, got %v", root.ActivePage())
 	}
 
 	updated, _ = root.Update(tea.KeyPressMsg(tea.Key{Code: tea.KeyF5}))
 	root = updated.(Model)
+	if root.ActivePage() != common.PageNotifications {
+		t.Errorf("expected PageNotifications on F5, got %v", root.ActivePage())
+	}
+
+	updated, _ = root.Update(tea.KeyPressMsg(tea.Key{Code: tea.KeyF6}))
+	root = updated.(Model)
 	if root.ActivePage() != common.PageShares {
-		t.Errorf("expected PageShares on F5, got %v", root.ActivePage())
+		t.Errorf("expected PageShares on F6, got %v", root.ActivePage())
 	}
 }
 

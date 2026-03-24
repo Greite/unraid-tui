@@ -21,7 +21,7 @@ var (
 
 func RenderFooter(width int) string {
 	keys := []struct{ key, desc string }{
-		{"F1-F6", i18n.T("pages")},
+		{"F1-F7", i18n.T("pages")},
 		{"tab", i18n.T("next")},
 		{"^S", i18n.T("servers")},
 		{"^L", i18n.T("lang")},

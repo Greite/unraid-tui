@@ -60,9 +60,10 @@ func RenderHeader(activePage common.Page, width int, notifs *model.NotificationO
 		{"F1", common.PageDashboard},
 		{"F2", common.PageDocker},
 		{"F3", common.PageVMs},
-		{"F4", common.PageNotifications},
-		{"F5", common.PageShares},
-		{"F6", common.PageSyslog},
+		{"F4", common.PagePlugins},
+		{"F5", common.PageNotifications},
+		{"F6", common.PageShares},
+		{"F7", common.PageSyslog},
 	}
 
 	for i, td := range tabDefs {
